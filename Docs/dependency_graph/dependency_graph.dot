@@ -1,0 +1,67 @@
+digraph WhoKnows {
+    label = "WhoKnows legacy system (as of v0.1.0)"
+    labelloc = t
+
+    // solid  = depends on   (A requires B)
+    // dashed = produces     (A generates B at build time)
+
+    // ---- Entry points ----
+    make_run  -> app_py
+    make_init -> app_py
+    make_init -> schema_sql
+    make_test -> app_tests
+    run_forever_sh -> app_py
+
+    // ---- Application ----
+    app_tests -> app_py
+    app_py -> python2
+    app_py -> flask
+
+    // ---- Third-party dependencies ----
+    // All pinned directly in requirements.txt, so the 2010 versions are locked in.
+    flask -> werkzeug
+    flask -> jinja2
+    requirements_txt -> flask
+    requirements_txt -> werkzeug
+    requirements_txt -> jinja2
+    requirements_txt -> setuptools
+
+    flask       [label="Flask 0.5\n(2010)"]
+    werkzeug    [label="Werkzeug 0.6.1\n(2010)"]
+    jinja2      [label="Jinja2 2.4\n(2010)"]
+    setuptools  [label="setuptools 44.1.1"]
+    requirements_txt [label="requirements.txt", shape=note]
+
+    // ---- Data ----
+    // Database access goes through the sqlite3 driver (stdlib, app.py:6).
+    app_py  -> sqlite3
+    sqlite3 -> python2
+    sqlite3 -> db_file
+    schema_sql -> db_file [style=dashed, label="produces"]
+
+    // ---- Templates ----
+    app_py -> search_html
+    app_py -> about_html
+    app_py -> login_html
+    app_py -> register_html
+    search_html   -> layout_html
+    about_html    -> layout_html
+    login_html    -> layout_html
+    register_html -> layout_html
+    layout_html -> style_css
+    layout_html -> monkgroup_png
+
+    style_css     [label="static/style.css"]
+    monkgroup_png [label="static/monkgroup.png"]
+
+    subgraph cluster_legend {
+        label = "Legend"
+        fontsize = 10
+        a -> b [label="depends on"]
+        c -> d [style=dashed, label="produces"]
+        a [label="", shape=point]
+        b [label="", shape=point]
+        c [label="", shape=point]
+        d [label="", shape=point]
+    }
+}
