@@ -8,6 +8,8 @@ import hashlib
 from datetime import datetime
 from contextlib import closing
 from flask import Flask, request, session, url_for, redirect, render_template, g, flash, jsonify
+from dotenv import load_dotenv
+load_dotenv()
 
 ################################################################################
 # Configuration
