@@ -8,6 +8,8 @@ import hashlib
 from datetime import datetime
 from contextlib import closing
 from flask import Flask, request, session, url_for, redirect, render_template, g, flash, jsonify
+from dotenv import load_dotenv
+load_dotenv()
 
 ################################################################################
 # Configuration
@@ -45,10 +47,17 @@ def check_db_exists():
 
 
 def init_db():
-    """Creates the database tables."""
+    """Creates the database tables and seeds the default admin user."""
     with closing(connect_db(init_mode=True)) as db:
         with app.open_resource('../schema.sql') as f:
             db.cursor().executescript(f.read().decode('utf-8'))
+
+        db.execute(
+            "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
+            (os.environ.get("ADMIN_USERNAME", "admin"),
+             os.environ.get("ADMIN_EMAIL"),
+             hash_password(os.environ.get("ADMIN_PASSWORD")))
+        )
         db.commit()
         print("Initialized the database: " + str(DATABASE_PATH))
 
