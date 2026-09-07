@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	httpSwagger "github.com/swaggo/http-swagger" // swagger UI handler
+	_ "whoknows/API-specs" // head -1 go.mod (module path) + /API-specs
 )
 
 // @Summary Serve Root Page
@@ -160,6 +163,9 @@ func main() {
 	mux.HandleFunc("POST /api/register", apiRegister)
 	mux.HandleFunc("POST /api/login", apiLogin)
 	mux.HandleFunc("GET /api/logout", apiLogout)
+
+	// Swagger UI endpoint
+	mux.Handle("GET /swagger/", httpSwagger.WrapHandler)
 
 	fmt.Println("Server running on :8080")
 	http.ListenAndServe(":8080", mux)
