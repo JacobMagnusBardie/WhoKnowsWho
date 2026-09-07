@@ -227,4 +227,4 @@ if __name__ == '__main__':
     connect_db()
     # Run the server
     # debug=True enables automatic reloading and better messaging, only for development
-    app.run(host="0.0.0.0", port=8080, debug=DEBUG)
+    app.run(host="0.0.0.0", port=8081, debug=DEBUG)
