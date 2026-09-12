@@ -22,3 +22,15 @@ type ValidationError struct {
 type HTTPValidationError struct {
 	Detail []ValidationError `json:"detail"`
 }
+
+type User struct {
+	Username string
+}
+
+type PageData struct {
+	Title    string
+	Error    string
+	Username string
+	User     *User // nil if logged out
+	Flashes  []string
+}

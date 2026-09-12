@@ -3,11 +3,21 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 
 	httpSwagger "github.com/swaggo/http-swagger" // swagger UI handler
 	_ "whoknows/API-specs" // head -1 go.mod (module path) + /API-specs
 )
+
+// Parses all html pages through Go's template engine. The templates are stored in the "templates" variable and can be used to render HTML pages with dynamic data.
+const htmlDir = "../frontend/html/"
+
+// Each page pairs the shared layout with its own body file, so layout.html template knows what .html to render with a layout. (See L. 25 layout.html)
+var pages = map[string]*template.Template{
+	"login":    template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"login.html")),
+	"register": template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"register.html")),
+}
 
 // @Summary Serve Root Page
 // @Router / [get]
@@ -27,14 +37,15 @@ func serveWeatherPage(w http.ResponseWriter, r *http.Request) {
 // @Router /register [get]
 func serveRegisterPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintln(w, "<h1>Register</h1>")
+	pages["register"].ExecuteTemplate(w, "layout", PageData{Title: "Register"})
 }
 
 // @Summary Serve Login Page
 // @Router /login [get]
 func serveLoginPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintln(w, "<h1>Login</h1>")
+	// Render the login.html template. The PageData struct is populated with the title "Log In" and passed to the template (layout.html) and then to login.html for rendering. (see l. 2 in layout.html)
+	pages["login"].ExecuteTemplate(w, "layout", PageData{Title: "Log In"}) //Go to frontend/html/layout.html
 }
 
 // @Summary Search
