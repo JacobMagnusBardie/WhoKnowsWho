@@ -161,9 +161,15 @@ func apiLogout(w http.ResponseWriter, r *http.Request) {
 // @host localhost:8080
 // @BasePath /
 func main() {
+	// Initialize the database connection and ensure the schema is applied. 
+	// The db variable is a global handle to the SQLite database, which is used by the API handlers to perform queries and updates.
+	db = initDB() 
+	defer db.Close() // defer meaning: ensures that the database connection is closed when the main function exits, preventing resource leaks.
+
+	
 	mux := http.NewServeMux()
 
-	// Serve /static/* (CSS, images, ...) from ../frontend/static
+	// Serve /static/* (CSS, images, osv) from ../frontend/static
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("../frontend/static"))))
 
 	mux.HandleFunc("GET /", serveRootPage)
