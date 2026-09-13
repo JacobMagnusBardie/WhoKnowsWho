@@ -16,7 +16,6 @@ const htmlDir = "../frontend/html/"
 // Each page pairs the shared layout with its own body file, so layout.html template knows what .html to render with a layout. (See L. 25 layout.html)
 var pages = map[string]*template.Template{
 	"login":    template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"login.html")),
-	"register": template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"register.html")),
 }
 
 // @Summary Serve Root Page
@@ -37,7 +36,7 @@ func serveWeatherPage(w http.ResponseWriter, r *http.Request) {
 // @Router /register [get]
 func serveRegisterPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	pages["register"].ExecuteTemplate(w, "layout", PageData{Title: "Register"})
+	fmt.Fprintln(w, "<h1>Register</h1>")
 }
 
 // @Summary Serve Login Page
@@ -163,6 +162,9 @@ func apiLogout(w http.ResponseWriter, r *http.Request) {
 // @BasePath /
 func main() {
 	mux := http.NewServeMux()
+
+	// Serve /static/* (CSS, images, ...) from ../frontend/static
+	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("../frontend/static"))))
 
 	mux.HandleFunc("GET /", serveRootPage)
 	mux.HandleFunc("GET /weather", serveWeatherPage)

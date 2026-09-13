@@ -1,4 +1,4 @@
-{{define "body"}}
+{{define "body"}} <!-- defined as body, so that the layout.html template knows what .html to render with a layout. (See L. 25 main.go) -->
   <h2>Log In</h2>
   {{if .Error}}<div class="error"><strong>Error:</strong> {{.Error}}</div>{{end}}
   <form action="/api/login" method="POST">

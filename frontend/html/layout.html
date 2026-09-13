@@ -1,4 +1,4 @@
-{{define "layout"}}
+{{define "layout"}} <!-- defined as layout, to render html pages with a layout. (See L. 25 main.go) -->
 <!doctype html>
 <title>{{if .Title}}{{.Title}}{{else}}¿Who Knows?{{end}}</title>
 <link rel="stylesheet" type="text/css" href="/static/style.css">
@@ -22,7 +22,7 @@
   </ul>
   {{end}}
   <div class="body">
-  {{block "body" .}}{{end}}
+  {{block "body" .}}{{end}} <!-- defined as body in all html files, so that the layout.html template knows what .html to render with a layout. (See L. 25 main.go) -->
   </div>
   <div class="footer">
     <span>¿Who Knows? &copy; 2009</span>
