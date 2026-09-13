@@ -25,6 +25,7 @@ type HTTPValidationError struct {
 
 type User struct {
 	Username string
+	Password string
 }
 
 type PageData struct {

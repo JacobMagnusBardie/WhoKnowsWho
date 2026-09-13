@@ -137,7 +137,24 @@ func apiLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: verificér mod DB (bcrypt.CompareHashAndPassword), opret session
+	user, err := getUserByUsername(username)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// TODO: passwords aren't hashed yet (see seedDevData in db.go), so this is
+	// a plain string comparison for now. Swap for bcrypt.CompareHashAndPassword
+	// once apiRegister hashes on the way in.
+	if user == nil || user.Password != password {
+		w.WriteHeader(http.StatusUnauthorized)
+		statusCode := 401
+		message := "Invalid username or password"
+		json.NewEncoder(w).Encode(AuthResponse{StatusCode: &statusCode, Message: &message})
+		return
+	}
+
+	// TODO: opret session
 
 	statusCode := 200
 	message := "Logged in successfully"
