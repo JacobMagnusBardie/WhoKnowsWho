@@ -1,0 +1,47 @@
+name: Deploy to Azure VM
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout kode
+        uses: actions/checkout@v4
+
+      - name: Sæt Go op
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Byg Go-applikationen
+        working-directory: ./backend
+        run: go build -o whoknows-app .
+
+      - name: Kopiér filer til VM via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.AZURE_VM_HOST }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          source: "backend/whoknows-app,frontend/*"
+          target: "/home/${{ secrets.AZURE_VM_USER }}/whoknows"
+
+      - name: Ret SELinux-kontekst på binary
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AZURE_VM_HOST }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          script: sudo chcon -t bin_t /home/${{ secrets.AZURE_VM_USER }}/whoknows/backend/whoknows-app
+
+      - name: Genstart applikationen på VM'en
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AZURE_VM_HOST }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          script: |
+            sudo systemctl restart whoknows
