@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"golang.org/x/crypto/bcrypt"
 
 	httpSwagger "github.com/swaggo/http-swagger" // swagger UI handler
 	_ "whoknows/API-specs" // head -1 go.mod (module path) + /API-specs
@@ -146,7 +147,8 @@ func apiLogin(w http.ResponseWriter, r *http.Request) {
 	// TODO: passwords aren't hashed yet (see seedDevData in db.go), so this is
 	// a plain string comparison for now. Swap for bcrypt.CompareHashAndPassword
 	// once apiRegister hashes on the way in.
-	if user == nil || user.Password != password {
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)) // Re assign err to this func, hash plain text password and compare with the hashed password from the database. If they don't match, err will be non-nil.
+	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		statusCode := 401
 		message := "Invalid username or password"
@@ -183,7 +185,7 @@ func main() {
 	db = initDB() 
 	defer db.Close() // defer meaning: ensures that the database connection is closed when the main function exits, preventing resource leaks.
 
-	
+
 	mux := http.NewServeMux()
 
 	// Serve /static/* (CSS, images, osv) from ../frontend/static

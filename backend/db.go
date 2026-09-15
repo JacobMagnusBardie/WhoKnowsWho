@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"golang.org/x/crypto/bcrypt"
 
 	_ "modernc.org/sqlite" // pure-Go SQLite driver.
 )
@@ -66,18 +67,19 @@ func initDB() *sql.DB {
 // so there is something to log in with and search for right after a fresh
 // startup. It uses INSERT OR IGNORE against the UNIQUE columns, so it is safe
 // to call on every startup — it's a no-op once the rows already exist.
-//
-// NOTE: password is stored in plain text here since apiRegister/apiLogin
-// don't hash yet (see their TODOs in main.go). Update this once bcrypt is wired in.
 func seedDevData(conn *sql.DB) {
-	_, err := conn.Exec(
+	// Hash the password before inserting it into the database
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+	if err != nil {
+		log.Fatalf("failed to hash password: %v", err)
+	}
+	_, err = conn.Exec(
 		`INSERT OR IGNORE INTO users (username, email, password) VALUES (?, ?, ?)`,
-		"testuser", "testuser@example.com", "password123",
+		"testuser", "testuser@example.com", hashedPassword,
 	)
 	if err != nil {
 		log.Fatalf("failed to seed test user: %v", err)
 	}
-
 	_, err = conn.Exec(
 		`INSERT OR IGNORE INTO pages (title, url, content, language) VALUES (?, ?, ?, ?)`,
 		"Test Page", "https://example.com/test-page", "This is some test content for development search.", "en",
