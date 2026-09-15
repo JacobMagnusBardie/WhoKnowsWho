@@ -1,0 +1,289 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "description": "API for søgning, login og vejr i WhoKnows-projektet.",
+        "title": "WhoKnows API",
+        "contact": {},
+        "version": "0.1.0"
+    },
+    "paths": {
+        "/": {
+            "get": {
+                "summary": "Serve Root Page",
+                "responses": {}
+            }
+        },
+        "/api/login": {
+            "post": {
+                "summary": "Login",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "username": {
+                                        "description": "Username",
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "description": "Password",
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "username",
+                                    "password"
+                                ]
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/main.AuthResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/main.HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/logout": {
+            "get": {
+                "summary": "Logout",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/main.AuthResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/register": {
+            "post": {
+                "summary": "Register",
+                "requestBody": {
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "username": {
+                                        "description": "Username",
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "description": "Email",
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "description": "Password",
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "username",
+                                    "email",
+                                    "password"
+                                ]
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/main.AuthResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/main.HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/search": {
+            "get": {
+                "summary": "Search",
+                "parameters": [
+                    {
+                        "description": "Search query",
+                        "name": "q",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Language code (e.g. 'en')",
+                        "name": "language",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/main.SearchResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/main.HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/weather": {
+            "get": {
+                "summary": "Weather",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/main.StandardResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/login": {
+            "get": {
+                "summary": "Serve Login Page",
+                "responses": {}
+            }
+        },
+        "/register": {
+            "get": {
+                "summary": "Serve Register Page",
+                "responses": {}
+            }
+        },
+        "/weather": {
+            "get": {
+                "summary": "Serve Weather Page",
+                "responses": {}
+            }
+        }
+    },
+    "servers": [
+        {
+            "url": "//localhost:8080"
+        }
+    ],
+    "components": {
+        "schemas": {
+            "main.AuthResponse": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    },
+                    "statusCode": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "main.HTTPValidationError": {
+                "type": "object",
+                "properties": {
+                    "detail": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/main.ValidationError"
+                        }
+                    }
+                }
+            },
+            "main.SearchResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "main.StandardResponse": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "type": "object",
+                        "additionalProperties": true
+                    }
+                }
+            },
+            "main.ValidationError": {
+                "type": "object",
+                "properties": {
+                    "loc": {
+                        "type": "array",
+                        "items": {}
+                    },
+                    "msg": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,153 @@
+basePath: /
+definitions:
+  main.AuthResponse:
+    properties:
+      message:
+        type: string
+      statusCode:
+        type: integer
+    type: object
+  main.HTTPValidationError:
+    properties:
+      detail:
+        items:
+          $ref: '#/definitions/main.ValidationError'
+        type: array
+    type: object
+  main.SearchResponse:
+    properties:
+      data:
+        items:
+          additionalProperties: true
+          type: object
+        type: array
+    type: object
+  main.StandardResponse:
+    properties:
+      data:
+        additionalProperties: true
+        type: object
+    type: object
+  main.ValidationError:
+    properties:
+      loc:
+        items: {}
+        type: array
+      msg:
+        type: string
+      type:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API for søgning, login og vejr i WhoKnows-projektet.
+  title: WhoKnows API
+  version: 0.1.0
+paths:
+  /:
+    get:
+      responses: {}
+      summary: Serve Root Page
+  /api/login:
+    post:
+      parameters:
+      - description: Username
+        in: formData
+        name: username
+        required: true
+        type: string
+      - description: Password
+        in: formData
+        name: password
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.AuthResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/main.HTTPValidationError'
+      summary: Login
+  /api/logout:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.AuthResponse'
+      summary: Logout
+  /api/register:
+    post:
+      parameters:
+      - description: Username
+        in: formData
+        name: username
+        required: true
+        type: string
+      - description: Email
+        in: formData
+        name: email
+        required: true
+        type: string
+      - description: Password
+        in: formData
+        name: password
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.AuthResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/main.HTTPValidationError'
+      summary: Register
+  /api/search:
+    get:
+      parameters:
+      - description: Search query
+        in: query
+        name: q
+        required: true
+        type: string
+      - description: Language code (e.g. 'en')
+        in: query
+        name: language
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.SearchResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/main.HTTPValidationError'
+      summary: Search
+  /api/weather:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.StandardResponse'
+      summary: Weather
+  /login:
+    get:
+      responses: {}
+      summary: Serve Login Page
+  /register:
+    get:
+      responses: {}
+      summary: Serve Register Page
+  /weather:
+    get:
+      responses: {}
+      summary: Serve Weather Page
+swagger: "2.0"
