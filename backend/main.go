@@ -73,16 +73,6 @@ func apiSearch(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(SearchResponse{Data: results})
 }
 
-// @Summary Weather
-// @Success 200 {object} StandardResponse
-// @Router /api/weather [get]
-func apiWeather(w http.ResponseWriter, r *http.Request) {
-	// TODO: erstat med rigtigt vejr-data-opslag
-	data := map[string]interface{}{"temperature": "unknown"}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(StandardResponse{Data: data})
-}
-
 // @Summary Register
 // @Param username formData string true "Username"
 // @Param email formData string true "Email"
@@ -197,7 +187,7 @@ func main() {
 	mux.HandleFunc("GET /login", serveLoginPage)
 
 	mux.HandleFunc("GET /api/search", apiSearch)
-	mux.HandleFunc("GET /api/weather", apiWeather)
+	mux.HandleFunc("GET /api/weather", apiWeatherHandler)
 	mux.HandleFunc("POST /api/register", apiRegister)
 	mux.HandleFunc("POST /api/login", apiLogin)
 	mux.HandleFunc("GET /api/logout", apiLogout)
