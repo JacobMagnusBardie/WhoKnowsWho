@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build, vet and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          # Reads the version from the go directive so CI cannot drift from go.mod
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Build
+        working-directory: ./backend
+        run: go build ./...
+
+      - name: Vet
+        working-directory: ./backend
+        run: go vet ./...
+
+      - name: Test
+        working-directory: ./backend
+        run: go test ./... -coverprofile=coverage.out -covermode=atomic
+
+  lint:
+    name: golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Needed so the linter can diff against the merge base
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.13.2
+          working-directory: backend
+          # The Go rewrite already carries lint debt (see the cleanup issue).
+          # Gate NEW code only, so the check is green today and the debt cannot
+          # grow. Running `golangci-lint run` locally still reports everything.
+          args: --new-from-merge-base=origin/${{ github.base_ref || 'dev' }}
