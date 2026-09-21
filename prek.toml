@@ -1,0 +1,27 @@
+# prek - pre-commit hooks (https://github.com/j178/prek)
+#
+# Install once per clone:   prek install
+# Run against everything:   prek run --all-files
+#
+# These are the cheap checks. Anything slow or Go-module-aware belongs in CI
+# (.github/workflows/ci.yaml), not here - a hook people wait on is a hook people
+# bypass with --no-verify.
+
+[[repos]]
+repo = "https://github.com/pre-commit/pre-commit-hooks"
+rev = "v6.0.0"
+hooks = [
+  { id = "check-yaml" },
+  { id = "check-merge-conflict" },
+  { id = "end-of-file-fixer" },
+  { id = "trailing-whitespace" },
+  { id = "check-added-large-files" },
+  { id = "detect-private-key" },
+]
+
+# gofmt is a formatter, not a linter, so it runs here rather than failing CI.
+[[repos]]
+repo = "local"
+hooks = [
+  { id = "gofmt", name = "gofmt", entry = "gofmt -l -w", language = "system", types = ["go"], pass_filenames = true },
+]

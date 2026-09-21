@@ -44,5 +44,5 @@ type PageData struct {
 	Username string
 	User     *User // nil if logged out
 	Flashes  []string
-	Weather  *WeatherInfo // nil unless the page is rendering a forecast
+        Weather  *WeatherInfo // nil unless the page is rendering a forecast
 }

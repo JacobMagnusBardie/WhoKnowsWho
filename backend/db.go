@@ -3,8 +3,8 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"golang.org/x/crypto/bcrypt"
+	"log"
 
 	_ "modernc.org/sqlite" // pure-Go SQLite driver.
 )
@@ -40,8 +40,8 @@ CREATE TABLE IF NOT EXISTS pages (
 // server starts handling requests.
 
 // Go doesn't use try/catch, instead it uses if err != nil to check for errors.
-// := initialize both conn and err, so they are available in the if block. 
-// If err is not nil, it logs a fatal error and exits the program. 
+// := initialize both conn and err, so they are available in the if block.
+// If err is not nil, it logs a fatal error and exits the program.
 // This ensures that the database connection is established successfully before proceeding.
 func initDB() *sql.DB {
 	conn, err := sql.Open("sqlite", dbPath)

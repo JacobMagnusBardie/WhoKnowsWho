@@ -3,12 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"golang.org/x/crypto/bcrypt"
 	"html/template"
 	"net/http"
-	"golang.org/x/crypto/bcrypt"
 
 	httpSwagger "github.com/swaggo/http-swagger" // swagger UI handler
-	_ "whoknows/API-specs" // head -1 go.mod (module path) + /API-specs
+	_ "whoknows/API-specs"                       // head -1 go.mod (module path) + /API-specs
 )
 
 // Parses all html pages through Go's template engine. The templates are stored in the "templates" variable and can be used to render HTML pages with dynamic data.
@@ -16,7 +16,7 @@ const htmlDir = "../frontend/html/"
 
 // Each page pairs the shared layout with its own body file, so layout.html template knows what .html to render with a layout. (See L. 25 layout.html)
 var pages = map[string]*template.Template{
-	"login":    template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"login.html")),
+	"login": template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"login.html")),
 }
 
 // @Summary Serve Root Page
@@ -163,11 +163,10 @@ func apiLogout(w http.ResponseWriter, r *http.Request) {
 // @host localhost:8080
 // @BasePath /
 func main() {
-	// Initialize the database connection and ensure the schema is applied. 
+	// Initialize the database connection and ensure the schema is applied.
 	// The db variable is a global handle to the SQLite database, which is used by the API handlers to perform queries and updates.
-	db = initDB() 
+	db = initDB()
 	defer db.Close() // defer meaning: ensures that the database connection is closed when the main function exits, preventing resource leaks.
-
 
 	mux := http.NewServeMux()
 

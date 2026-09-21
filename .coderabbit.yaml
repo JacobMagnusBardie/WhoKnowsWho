@@ -1,0 +1,32 @@
+# CodeRabbit configuration.
+# Docs: https://docs.coderabbit.ai/guides/configure-coderabbit
+language: en-GB
+
+reviews:
+  # A short summary is useful in the PR body; the poem is not.
+  high_level_summary: true
+  poem: false
+  review_status: true
+
+  # We already run golangci-lint as a required check. CodeRabbit should review
+  # intent and design, not restate what the linter has already annotated.
+  path_instructions:
+    - path: "backend/**/*.go"
+      instructions: >-
+        Focus on correctness, missing error handling, session and auth mistakes,
+        and whether HTTP handlers match the OpenAPI spec in backend/API-specs.
+        Do not comment on formatting, import order, line length, or anything
+        golangci-lint already reports - see .golangci.yml for the enabled set.
+        Flag any handler that performs a network call without a timeout: the
+        simulator drops a user after 6 seconds on /api/* routes.
+
+  path_filters:
+    - "!src/**"
+    - "!backend/API-specs/**"
+
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - dev
+      - main
