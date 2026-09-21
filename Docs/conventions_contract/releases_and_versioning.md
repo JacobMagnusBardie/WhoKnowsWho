@@ -1,6 +1,6 @@
  4. Releases and Versioning
 
-  A release is a pull request from dev into main, titled release: v0.3.0, approved by all other contributors.
+  A release is a pull request from dev into main, titled release: v0.3.0, approved by one other contributor.
 
   - Release PRs use a merge commit, not a squash — the release boundary and the work behind it stay visible
   - Version numbers are MAJOR.MINOR.PATCH: patch for bugfixes, minor for new features, major for breaking changes

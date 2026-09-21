@@ -1,7 +1,10 @@
 1. Branching Strategy
 
   main holds released, always-deployable code; dev is the integration branch. Both require a pull request —
-  nobody pushes directly to either. PR to main requires all contributors to review before merging. 
+  nobody pushes directly to either. PR to main requires one approving review before merging.
+
+  Both branches also require the CI checks (Build, vet and test, golangci-lint) to pass, and neither
+  ruleset has bypass actors, so these rules apply to everyone including repo admins.
 
   Every branch traces to one GitHub issue on the board and is named <type>/<issue-number>-<slug>, e.g.
   feature/42-add-search-endpoint. Types match the commit vocabulary: feature, fix, docs, refactor, test, chore,
