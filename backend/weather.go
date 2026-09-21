@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 	"sync"
 	"time"
@@ -77,8 +78,8 @@ func fetchWeatherFromProvider() (map[string]interface{}, error) {
 
 // getWeatherData returns cached data if it's fresh enough — otherwise fetches new data.
 // This is the mechanism that solves the scaling question: no matter how many
-// concurrent calls to apiWeather occur, only ONE of them (in practice) hits the
-// external service, the rest get the cached result.
+// concurrent calls occur, only ONE of them (in practice) hits the external
+// service, the rest get the cached result.
 func getWeatherData() (map[string]interface{}, error) {
 	weatherCacheStore.mu.Lock()
 	defer weatherCacheStore.mu.Unlock()
@@ -101,7 +102,7 @@ func getWeatherData() (map[string]interface{}, error) {
 	return weatherCacheStore.data, nil
 }
 
-// --- The updated endpoint ---
+// --- JSON API endpoint ---
 
 // @Summary Weather
 // @Success 200 {object} StandardResponse
@@ -122,4 +123,41 @@ func apiWeatherHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(StandardResponse{Data: data})
+}
+
+// --- HTML page ---
+
+// init registers the weather template alongside the existing ones in the shared
+// `pages` map (declared in main.go). Package-level variables are guaranteed to be
+// initialized before any init() function runs, so `pages` already exists by the
+// time this runs, regardless of file order.
+func init() {
+	pages["weather"] = template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"weather.html"))
+}
+
+// @Summary Serve Weather Page
+// @Router /weather [get]
+func serveWeatherPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+
+	raw, err := getWeatherData()
+	page := PageData{Title: "Weather"}
+
+	if err != nil {
+		page.Error = "Could not retrieve the weather forecast right now. Please try again shortly."
+	} else {
+		info := &WeatherInfo{}
+		if temp, ok := raw["temperature"].(float64); ok {
+			info.Temperature = temp
+		}
+		if wind, ok := raw["wind_speed"].(float64); ok {
+			info.WindSpeed = wind
+		}
+		if hum, ok := raw["humidity"].(float64); ok {
+			info.Humidity = hum
+		}
+		page.Weather = info
+	}
+
+	pages["weather"].ExecuteTemplate(w, "layout", page)
 }

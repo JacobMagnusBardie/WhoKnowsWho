@@ -26,13 +26,6 @@ func serveRootPage(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "<h1>WhoKnows</h1>")
 }
 
-// @Summary Serve Weather Page
-// @Router /weather [get]
-func serveWeatherPage(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintln(w, "<h1>Weather</h1>")
-}
-
 // @Summary Serve Register Page
 // @Router /register [get]
 func serveRegisterPage(w http.ResponseWriter, r *http.Request) {

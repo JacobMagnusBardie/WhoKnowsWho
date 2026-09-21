@@ -1,0 +1,15 @@
+{{define "body"}}
+<div class="weather-page">
+  {{if .Error}}
+    <p class="weather-error">{{.Error}}</p>
+  {{else if .Weather}}
+    <div class="weather-card">
+      <p class="weather-temp">{{printf "%.1f" .Weather.Temperature}}°C</p>
+      <ul class="weather-details">
+        <li>Wind speed: {{printf "%.1f" .Weather.WindSpeed}} m/s</li>
+        <li>Humidity: {{printf "%.0f" .Weather.Humidity}}%</li>
+      </ul>
+    </div>
+  {{end}}
+</div>
+{{end}}
