@@ -22,21 +22,21 @@ var pages = map[string]*template.Template{
 // @Summary Serve Root Page
 // @Router / [get]
 func serveRootPage(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	fmt.Fprintln(w, "<h1>WhoKnows</h1>")
 }
 
 // @Summary Serve Register Page
 // @Router /register [get]
 func serveRegisterPage(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	fmt.Fprintln(w, "<h1>Register</h1>")
 }
 
 // @Summary Serve Login Page
 // @Router /login [get]
 func serveLoginPage(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	// Render the login.html template. The PageData struct is populated with the title "Log In" and passed to the template (layout.html) and then to login.html for rendering. (see l. 2 in layout.html)
 	pages["login"].ExecuteTemplate(w, "layout", PageData{Title: "Log In"}) //Go to frontend/html/layout.html
 }

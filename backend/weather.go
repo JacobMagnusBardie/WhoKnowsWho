@@ -138,7 +138,7 @@ func init() {
 // @Summary Serve Weather Page
 // @Router /weather [get]
 func serveWeatherPage(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
 	raw, err := getWeatherData()
 	page := PageData{Title: "Weather"}
