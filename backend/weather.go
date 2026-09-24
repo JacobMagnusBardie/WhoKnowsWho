@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -45,24 +47,36 @@ type openMeteoResponse struct {
 
 // fetchWeatherFromProvider fetches FRESH data from Open-Meteo.
 // Only called when the cache is empty or stale.
-func fetchWeatherFromProvider() (map[string]interface{}, error) {
+func fetchWeatherFromProvider(ctx context.Context) (map[string]interface{}, error) {
 	url := fmt.Sprintf(
 		"https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&current=temperature_2m,wind_speed_10m,relative_humidity_2m,weather_code&wind_speed_unit=ms",
 		weatherLat, weatherLon,
 	)
 
-	client := http.Client{Timeout: 5 * time.Second} // Important: sets a timeout so a slow third-party response doesn't cause our own /api/weather to exceed the simulation's 6-second requirement
-	resp, err := client.Get(url)
+	client := http.Client{Timeout: 5 * time.Second}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("could not create weather request: %w", err)
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("could not contact the weather service: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("closing weather response body: %v", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("weather service responded with status code %d", resp.StatusCode)
+		return nil, fmt.Errorf(
+			"weather service responded with status code %d",
+			resp.StatusCode,
+		)
 	}
 
-	// decodes the JSON response into the parsing struct openMeteoResponse, which only contains the fields we use
 	var parsed openMeteoResponse
 	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
 		return nil, fmt.Errorf("could not read response from weather service: %w", err)
@@ -80,21 +94,20 @@ func fetchWeatherFromProvider() (map[string]interface{}, error) {
 // This is the mechanism that solves the scaling question: no matter how many
 // concurrent calls occur, only ONE of them (in practice) hits the external
 // service, the rest get the cached result.
-func getWeatherData() (map[string]interface{}, error) {
+func getWeatherData(ctx context.Context) (map[string]interface{}, error) {
 	weatherCacheStore.mu.Lock()
 	defer weatherCacheStore.mu.Unlock()
 
 	cacheIsStale := time.Since(weatherCacheStore.fetchedAt) > weatherCacheTTL
 	if weatherCacheStore.data == nil || cacheIsStale {
-		fresh, err := fetchWeatherFromProvider()
+		fresh, err := fetchWeatherFromProvider(ctx)
 		if err != nil {
-			// If we HAVE an old cached result, it's better to serve it
-			// (slightly stale weather) than to fail entirely if the third-party service is down.
 			if weatherCacheStore.data != nil {
 				return weatherCacheStore.data, nil
 			}
 			return nil, err
 		}
+
 		weatherCacheStore.data = fresh
 		weatherCacheStore.fetchedAt = time.Now()
 	}
@@ -111,18 +124,27 @@ func getWeatherData() (map[string]interface{}, error) {
 func apiWeatherHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	data, err := getWeatherData()
+	data, err := getWeatherData(r.Context())
 	if err != nil {
-		w.WriteHeader(http.StatusBadGateway) // 502: we couldn't get data from a THIRD PARTY, not our own error
-		json.NewEncoder(w).Encode(HTTPValidationError{
+		w.WriteHeader(http.StatusBadGateway)
+
+		if err := json.NewEncoder(w).Encode(HTTPValidationError{
 			Detail: []ValidationError{
-				{Loc: []interface{}{"weather"}, Msg: "Could not retrieve weather data", Type: "upstream_error"},
+				{
+					Loc:  []interface{}{"weather"},
+					Msg:  "Could not retrieve weather data",
+					Type: "upstream_error",
+				},
 			},
-		})
+		}); err != nil {
+			log.Printf("writing weather error response: %v", err)
+		}
 		return
 	}
 
-	json.NewEncoder(w).Encode(StandardResponse{Data: data})
+	if err := json.NewEncoder(w).Encode(StandardResponse{Data: data}); err != nil {
+		log.Printf("writing weather response: %v", err)
+	}
 }
 
 // --- HTML page ---
@@ -140,13 +162,14 @@ func init() {
 func serveWeatherPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-	raw, err := getWeatherData()
+	raw, err := getWeatherData(r.Context())
 	page := PageData{Title: "Weather"}
 
 	if err != nil {
 		page.Error = "Could not retrieve the weather forecast right now. Please try again shortly."
 	} else {
 		info := &WeatherInfo{}
+
 		if temp, ok := raw["temperature"].(float64); ok {
 			info.Temperature = temp
 		}
@@ -156,8 +179,11 @@ func serveWeatherPage(w http.ResponseWriter, r *http.Request) {
 		if hum, ok := raw["humidity"].(float64); ok {
 			info.Humidity = hum
 		}
+
 		page.Weather = info
 	}
 
-	pages["weather"].ExecuteTemplate(w, "layout", page)
+	if err := pages["weather"].ExecuteTemplate(w, "layout", page); err != nil {
+		log.Printf("rendering weather page: %v", err)
+	}
 }
