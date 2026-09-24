@@ -47,3 +47,34 @@ jobs:
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           script: |
             sudo systemctl restart whoknows
+
+  # Tags and publishes a GitHub Release for every release PR merged into main.
+  # The version comes from the PR title ("release: vX.Y.Z", see
+  # Docs/conventions_contract/releases_and_versioning.md), and it only runs once the
+  # deploy succeeded, so a release always means "this is what runs on the VM".
+  release:
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # create the tag and the release
+      pull-requests: read  # look up the title of the merged release PR
+    steps:
+      - name: Tag and publish release from the PR title
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title=$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" \
+            --jq 'map(select(.base.ref == "main")) | .[0].title // ""')
+          version=$(echo "$title" | sed -nE 's/^release: (v[0-9]+\.[0-9]+\.[0-9]+)$/\1/p')
+
+          if [ -z "$version" ]; then
+            echo "::error::Merged PR title '$title' is not 'release: vX.Y.Z', so no release was created"
+            exit 1
+          fi
+
+          # Creates the tag on the merge commit; fails if the version already exists
+          gh release create "$version" \
+            --repo "${{ github.repository }}" \
+            --target "${{ github.sha }}" \
+            --title "$version" \
+            --generate-notes
