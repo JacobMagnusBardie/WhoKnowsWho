@@ -47,7 +47,7 @@ type openMeteoResponse struct {
 // Only called when the cache is empty or stale.
 func fetchWeatherFromProvider() (map[string]interface{}, error) {
 	url := fmt.Sprintf(
-		"https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&current=temperature_2m,wind_speed_10m,relative_humidity_2m,weather_code",
+		"https://api.open-meteo.com/v1/forecast?latitude=%.4f&longitude=%.4f&current=temperature_2m,wind_speed_10m,relative_humidity_2m,weather_code&wind_speed_unit=ms",
 		weatherLat, weatherLon,
 	)
 
