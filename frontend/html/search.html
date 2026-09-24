@@ -1,0 +1,40 @@
+{{define "body"}} <!-- defined as body, so that the layout.html template knows what .html to render with a layout. (See L. 25 main.go) -->
+  <div>
+    <input id="search-input" aria-label="Search" placeholder="Search..." value="{{.Query}}"/>
+    <button id="search-button" onclick="makeSearchRequest()">Search</button>
+  </div>
+
+  <div id="results">
+    {{range .Results}}
+    <div>
+      <h2><a class="search-result-title" href="{{.URL}}">{{.Title}}</a></h2>
+      <p class="search-result-description">{{.Description}}</p>
+    </div>
+    {{end}}
+  </div>
+
+  <script>
+    let searchInput;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      searchInput = document.getElementById("search-input");
+
+      // Focus the input field
+      searchInput.focus();
+
+      // Search when the user presses Enter
+      searchInput.addEventListener('keypress', (event) => {
+          if (event.key === 'Enter') {
+            makeSearchRequest();
+          }
+      });
+    });
+
+    function makeSearchRequest() {
+      const query = searchInput.value;
+      const url = new URL(window.location.href);
+      url.searchParams.set('q', query);
+      window.location.href = url.toString();
+    }
+  </script>
+{{end}}

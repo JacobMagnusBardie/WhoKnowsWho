@@ -1,45 +1,109 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/crypto/bcrypt"
 	"html/template"
+	"log"
 	"net/http"
+	"os"
+
+	"github.com/gorilla/securecookie"
+	"github.com/joho/godotenv"
 
 	httpSwagger "github.com/swaggo/http-swagger" // swagger UI handler
-	_ "whoknows/API-specs"                       // head -1 go.mod (module path) + /API-specs
+	"golang.org/x/crypto/bcrypt"
+	_ "whoknows/API-specs" // head -1 go.mod (module path) + /API-specs
 )
 
 // Parses all html pages through Go's template engine. The templates are stored in the "templates" variable and can be used to render HTML pages with dynamic data.
 const htmlDir = "../frontend/html/"
 const contentTypeHTML = "text/html; charset=utf-8"
 
-// @Summary Serve Root Page
-// @Router / [get]
-func serveRootPage(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", contentTypeHTML)
-	fmt.Fprintln(w, "<h1>WhoKnows</h1>")
-}
-
 // Each page pairs the shared layout with its own body file, so layout.html template knows what .html to render with a layout. (See L. 25 layout.html)
 var pages = map[string]*template.Template{
-	"login": template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"login.html")),
+	"login":  template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"login.html")),
+	"search": template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"search.html")),
+}
+
+// sessionKey signs/verifies session cookie values. Initialized in main() from SESSION_HASH_KEY.
+var sessionKey *securecookie.SecureCookie
+
+// cookieSecure marks the session cookie as HTTPS-only. Off by default because the VM serves
+// plain HTTP, where browsers and the simulator would drop a Secure cookie. Set COOKIE_SECURE=true
+// once HTTPS is in place.
+var cookieSecure bool
+
+// loadSessionKey reads SESSION_HASH_KEY (a base64-encoded 32-byte value) from the environment
+// and builds the SecureCookie codec used to sign session cookies.
+func loadSessionKey() *securecookie.SecureCookie {
+	encoded := os.Getenv("SESSION_HASH_KEY")
+	if encoded == "" {
+		log.Fatal("SESSION_HASH_KEY is not set")
+	}
+
+	hashKey, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		log.Fatalf("SESSION_HASH_KEY is not valid base64: %v", err)
+	}
+
+	return securecookie.New(hashKey, nil)
+}
+
+// currentUser reads the session cookie and returns the logged-in user, or nil if there
+// is no valid session.
+func currentUser(r *http.Request) *User {
+	cookie, err := r.Cookie("session")
+	if err != nil {
+		return nil
+	}
+
+	values := map[string]interface{}{}
+	if err := sessionKey.Decode("session", cookie.Value, &values); err != nil {
+		return nil
+	}
+
+	username, ok := values["username"].(string)
+	if !ok {
+		return nil
+	}
+
+	return &User{Username: username}
+}
+
+// @Summary Serve Root Page
+// @Param q query string false "Search query"
+// @Router / [get]
+func serveRootPage(w http.ResponseWriter, r *http.Request) {
+	// The search page is public (OpenAPI spec: GET / returns 200 text/html); the session only
+	// decides whether the nav shows "Log out" or "Log in / Register".
+	w.Header().Set("Content-Type", contentTypeHTML)
+	query := r.URL.Query().Get("q") // Get the value of the "q" query parameter from the URL. If the parameter is not present, query will be an empty string.
+
+	// TODO: erstat med rigtigt DB-opslag mod pages-tabellen
+	results := []SearchResult{} //Array of SearchResult structs, which is empty for now. This will be populated with search results from the database in the future.
+
+	if err := pages["search"].ExecuteTemplate(w, "layout", PageData{Title: "¿Who Knows?", Query: query, Results: results, User: currentUser(r)}); err != nil {
+		log.Printf("render search page: %v", err)
+	}
 }
 
 // @Summary Serve Register Page
 // @Router /register [get]
 func serveRegisterPage(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Content-Type", contentTypeHTML)
 	fmt.Fprintln(w, "<h1>Register</h1>")
 }
 
 // @Summary Serve Login Page
 // @Router /login [get]
 func serveLoginPage(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Content-Type", contentTypeHTML)
 	// Render the login.html template. The PageData struct is populated with the title "Log In" and passed to the template (layout.html) and then to login.html for rendering. (see l. 2 in layout.html)
-	pages["login"].ExecuteTemplate(w, "layout", PageData{Title: "Log In"}) //Go to frontend/html/layout.html
+	if err := pages["login"].ExecuteTemplate(w, "layout", PageData{Title: "Log In", User: currentUser(r)}); err != nil {
+		log.Printf("render login page: %v", err)
+	}
 }
 
 // @Summary Search
@@ -128,9 +192,7 @@ func apiLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: passwords aren't hashed yet (see seedDevData in db.go), so this is
-	// a plain string comparison for now. Swap for bcrypt.CompareHashAndPassword
-	// once apiRegister hashes on the way in.
+	// Swapped for bcrypt.CompareHashAndPassword
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)) // Re assign err to this func, hash plain text password and compare with the hashed password from the database. If they don't match, err will be non-nil.
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -140,7 +202,23 @@ func apiLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: opret session
+	// Create a session cookie for the logged-in user. The cookie is signed using the sessionKey to prevent tampering. The cookie contains the user's ID, which can be used to identify the user in subsequent requests.
+	// The cookie is set to HttpOnly to prevent access from JavaScript, and SameSite is set to Lax to allow the cookie to be sent with top-level navigations.
+	// The cookie is set to expire when the browser session ends (no MaxAge or Expires is set).
+	// (use gorilla/sessions for more advanced session management, e.g. with Redis or database-backed sessions)
+	encoded, err := sessionKey.Encode("session", map[string]interface{}{"user_id": user.ID, "username": user.Username})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	http.SetCookie(w, &http.Cookie{ //nolint:gosec // G124: Secure follows COOKIE_SECURE, the VM serves plain HTTP
+		Name:     "session",
+		Value:    encoded,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   cookieSecure,
+		SameSite: http.SameSiteLaxMode,
+	})
 
 	statusCode := 200
 	message := "Logged in successfully"
@@ -151,11 +229,23 @@ func apiLogin(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} AuthResponse
 // @Router /api/logout [get]
 func apiLogout(w http.ResponseWriter, r *http.Request) {
-	// TODO: ryd session/cookie
+	http.SetCookie(w, &http.Cookie{ //nolint:gosec // G124: Secure follows COOKIE_SECURE, the VM serves plain HTTP
+		Name:     "session",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   cookieSecure,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   -1, // MaxAge -1 means delete the cookie immediately
+	})
+
+	// OpenAPI spec: 200 application/json with an AuthResponse, not a redirect
 	statusCode := 200
 	message := "Logged out successfully"
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(AuthResponse{StatusCode: &statusCode, Message: &message})
+	if err := json.NewEncoder(w).Encode(AuthResponse{StatusCode: &statusCode, Message: &message}); err != nil {
+		log.Printf("writing logout response: %v", err)
+	}
 }
 
 // @title WhoKnows API
@@ -164,6 +254,12 @@ func apiLogout(w http.ResponseWriter, r *http.Request) {
 // @host localhost:8080
 // @BasePath /
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Println("no .env file found, relying on process environment")
+	}
+	sessionKey = loadSessionKey()
+	cookieSecure = os.Getenv("COOKIE_SECURE") == "true"
+
 	// Initialize the database connection and ensure the schema is applied.
 	// The db variable is a global handle to the SQLite database, which is used by the API handlers to perform queries and updates.
 	db = initDB()

@@ -24,6 +24,7 @@ type HTTPValidationError struct {
 }
 
 type User struct {
+	ID       int
 	Username string
 	Password string
 }
@@ -45,4 +46,12 @@ type PageData struct {
 	User     *User // nil if logged out
 	Flashes  []string
 	Weather  *WeatherInfo // nil unless the page is rendering a forecast
+	Query    string
+	Results  []SearchResult
+}
+
+type SearchResult struct {
+	Title       string
+	URL         string
+	Description string
 }
