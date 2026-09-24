@@ -13,17 +13,18 @@ import (
 
 // Parses all html pages through Go's template engine. The templates are stored in the "templates" variable and can be used to render HTML pages with dynamic data.
 const htmlDir = "../frontend/html/"
-
-// Each page pairs the shared layout with its own body file, so layout.html template knows what .html to render with a layout. (See L. 25 layout.html)
-var pages = map[string]*template.Template{
-	"login": template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"login.html")),
-}
+const contentTypeHTML = "text/html; charset=utf-8"
 
 // @Summary Serve Root Page
 // @Router / [get]
 func serveRootPage(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Content-Type", contentTypeHTML)
 	fmt.Fprintln(w, "<h1>WhoKnows</h1>")
+}
+
+// Each page pairs the shared layout with its own body file, so layout.html template knows what .html to render with a layout. (See L. 25 layout.html)
+var pages = map[string]*template.Template{
+	"login": template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"login.html")),
 }
 
 // @Summary Serve Register Page

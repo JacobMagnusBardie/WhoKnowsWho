@@ -37,12 +37,12 @@ type WeatherInfo struct {
 	WindSpeed   float64
 	Humidity    float64
 }
- 
+
 type PageData struct {
 	Title    string
 	Error    string
 	Username string
 	User     *User // nil if logged out
 	Flashes  []string
-        Weather  *WeatherInfo // nil unless the page is rendering a forecast
+	Weather  *WeatherInfo // nil unless the page is rendering a forecast
 }
