@@ -1,0 +1,36 @@
+# golangci-lint v2 configuration.
+# Run locally with: cd backend && golangci-lint run
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  # standard = errcheck, govet, ineffassign, staticcheck, unused
+  default: standard
+  enable:
+    # HTTP response bodies must be closed - matters for the weather API call
+    - bodyclose
+    # HTTP requests should carry a context so they can time out; the simulator
+    # gives /api/weather a 6 second budget
+    - noctx
+    # sql.Rows must be closed and their Err() checked - queries.go talks to SQLite
+    - sqlclosecheck
+    - rowserrcheck
+    # Error wrapping and comparison correctness
+    - errorlint
+    # Security findings (hardcoded credentials, weak hashing, unsafe SQL)
+    - gosec
+    - misspell
+  exclusions:
+    # swag writes API-specs/docs.go; do not lint generated code
+    generated: lax
+    paths:
+      - API-specs
+
+formatters:
+  enable:
+    - gofmt
+  exclusions:
+    paths:
+      - API-specs

@@ -1,0 +1,53 @@
+name: Release PR check
+
+# Gatekeeper for main: a PR may only merge into main if it is a proper release PR.
+# Required in the main-protection ruleset, so a PR that fails here can't be merged,
+# deployed or released. deploy.yaml's release job relies on this having passed.
+on:
+  pull_request:
+    branches: [main]
+    # "edited" re-runs the check when someone fixes the PR title
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  release-pr:
+    name: Release PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check source branch, title and version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          HEAD_REF: ${{ github.head_ref }}
+          # Passed via env, never interpolated into the script: a PR title is user input
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          errors=0
+
+          if [ "$HEAD_REPO" != "$REPO" ] || [ "$HEAD_REF" != "dev" ]; then
+            echo "::error::Only dev can be merged into main, this PR comes from $HEAD_REPO:$HEAD_REF"
+            errors=1
+          fi
+
+          version=$(echo "$TITLE" | sed -nE 's/^release: (v[0-9]+\.[0-9]+\.[0-9]+)$/\1/p')
+          if [ -z "$version" ]; then
+            echo "::error::PR title must be exactly 'release: vX.Y.Z', got '$TITLE'"
+            errors=1
+          else
+            latest=$(gh api --paginate "repos/$REPO/tags" --jq '.[].name' \
+              | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
+            highest=$(printf '%s\n%s\n' "$latest" "$version" | sort -V | tail -n 1)
+            if [ -n "$latest" ] && { [ "$version" = "$latest" ] || [ "$highest" != "$version" ]; }; then
+              echo "::error::$version must be higher than the latest release $latest"
+              errors=1
+            fi
+          fi
+
+          if [ "$errors" -ne 0 ]; then
+            exit 1
+          fi
+          echo "Release PR OK: $version (latest release: ${latest:-none})"

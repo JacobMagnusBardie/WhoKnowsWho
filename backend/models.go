@@ -24,8 +24,19 @@ type HTTPValidationError struct {
 }
 
 type User struct {
+	ID       int
 	Username string
 	Password string
+}
+
+// WeatherInfo holds the forecast values shown on the weather page.
+// Kept as its own small struct (rather than loose fields directly on PageData)
+// so the template can simply check `{{if .Weather}}` to know whether forecast
+// data is available at all.
+type WeatherInfo struct {
+	Temperature float64
+	WindSpeed   float64
+	Humidity    float64
 }
 
 type PageData struct {
@@ -34,4 +45,13 @@ type PageData struct {
 	Username string
 	User     *User // nil if logged out
 	Flashes  []string
+	Weather  *WeatherInfo // nil unless the page is rendering a forecast
+	Query    string
+	Results  []SearchResult
+}
+
+type SearchResult struct {
+	Title       string
+	URL         string
+	Description string
 }
