@@ -13,37 +13,31 @@ import (
 
 // Parses all html pages through Go's template engine. The templates are stored in the "templates" variable and can be used to render HTML pages with dynamic data.
 const htmlDir = "../frontend/html/"
+const contentTypeHTML = "text/html; charset=utf-8"
+
+// @Summary Serve Root Page
+// @Router / [get]
+func serveRootPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", contentTypeHTML)
+	fmt.Fprintln(w, "<h1>WhoKnows</h1>")
+}
 
 // Each page pairs the shared layout with its own body file, so layout.html template knows what .html to render with a layout. (See L. 25 layout.html)
 var pages = map[string]*template.Template{
 	"login": template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"login.html")),
 }
 
-// @Summary Serve Root Page
-// @Router / [get]
-func serveRootPage(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintln(w, "<h1>WhoKnows</h1>")
-}
-
-// @Summary Serve Weather Page
-// @Router /weather [get]
-func serveWeatherPage(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintln(w, "<h1>Weather</h1>")
-}
-
 // @Summary Serve Register Page
 // @Router /register [get]
 func serveRegisterPage(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	fmt.Fprintln(w, "<h1>Register</h1>")
 }
 
 // @Summary Serve Login Page
 // @Router /login [get]
 func serveLoginPage(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	// Render the login.html template. The PageData struct is populated with the title "Log In" and passed to the template (layout.html) and then to login.html for rendering. (see l. 2 in layout.html)
 	pages["login"].ExecuteTemplate(w, "layout", PageData{Title: "Log In"}) //Go to frontend/html/layout.html
 }
@@ -71,16 +65,6 @@ func apiSearch(w http.ResponseWriter, r *http.Request) {
 	// TODO: erstat med rigtigt DB-opslag mod pages-tabellen
 	results := []map[string]interface{}{}
 	json.NewEncoder(w).Encode(SearchResponse{Data: results})
-}
-
-// @Summary Weather
-// @Success 200 {object} StandardResponse
-// @Router /api/weather [get]
-func apiWeather(w http.ResponseWriter, r *http.Request) {
-	// TODO: erstat med rigtigt vejr-data-opslag
-	data := map[string]interface{}{"temperature": "unknown"}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(StandardResponse{Data: data})
 }
 
 // @Summary Register
@@ -196,7 +180,7 @@ func main() {
 	mux.HandleFunc("GET /login", serveLoginPage)
 
 	mux.HandleFunc("GET /api/search", apiSearch)
-	mux.HandleFunc("GET /api/weather", apiWeather)
+	mux.HandleFunc("GET /api/weather", apiWeatherHandler)
 	mux.HandleFunc("POST /api/register", apiRegister)
 	mux.HandleFunc("POST /api/login", apiLogin)
 	mux.HandleFunc("GET /api/logout", apiLogout)

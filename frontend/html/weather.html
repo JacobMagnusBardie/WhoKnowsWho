@@ -1,0 +1,25 @@
+{{define "body"}}
+<div class="weather-page">
+  {{if .Error}}
+    <div class="weather-card weather-card--error">
+      <p class="weather-error">{{.Error}}</p>
+    </div>
+  {{else if .Weather}}
+    <div class="weather-card">
+      <p class="weather-temp">{{printf "%.1f" .Weather.Temperature}}<span class="weather-unit">°C</span></p>
+      <p class="weather-subtitle">Right now in Copenhagen</p>
+
+      <div class="weather-stats">
+        <div class="weather-stat">
+          <span class="weather-stat-label">Wind</span>
+          <span class="weather-stat-value">{{printf "%.1f" .Weather.WindSpeed}} m/s</span>
+        </div>
+        <div class="weather-stat">
+          <span class="weather-stat-label">Humidity</span>
+          <span class="weather-stat-value">{{printf "%.0f" .Weather.Humidity}}%</span>
+        </div>
+      </div>
+    </div>
+  {{end}}
+</div>
+{{end}}
