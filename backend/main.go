@@ -194,7 +194,7 @@ func apiLogin(w http.ResponseWriter, r *http.Request) {
 
 	// user is nil when the username doesn't exist. Answer exactly like a wrong password,
 	// so the response doesn't reveal which usernames are registered.
-        if user == nil || bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)) != nil {
+	if user == nil || bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)) != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		statusCode := 401
 		message := "Invalid username or password"
