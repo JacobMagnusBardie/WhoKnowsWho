@@ -181,3 +181,6 @@ backend/coverage.out
 *.swo
 *.swn
 *.bak
+
+# macOS Finder metadata
+.DS_Store
