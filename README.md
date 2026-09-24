@@ -12,8 +12,11 @@ The living implementation is in [`backend/`](backend) and [`frontend/`](frontend
 
 ## Running
 
+The server refuses to start without `SESSION_HASH_KEY`, which signs the login cookie. Create `backend/.env` once (it is git-ignored, see [`backend/.env.example`](backend/.env.example)):
+
 ```bash
 cd backend
+echo "SESSION_HASH_KEY=$(head -c 32 /dev/urandom | base64)" > .env
 go run .
 ```
 
