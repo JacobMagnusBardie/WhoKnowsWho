@@ -48,6 +48,23 @@ jobs:
           script: |
             sudo systemctl restart whoknows
 
+      # systemctl restart succeeds as soon as the process starts, even if the app exits a second
+      # later (e.g. missing SESSION_HASH_KEY). Wait for it to answer, so a broken deploy fails here
+      # and the release job below never runs.
+      - name: Tjek at applikationen svarer
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AZURE_VM_HOST }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          script: |
+            for i in $(seq 1 10); do
+              curl -fsS -o /dev/null http://localhost:8080/ && exit 0
+              sleep 2
+            done
+            sudo journalctl -u whoknows -n 30 --no-pager
+            exit 1
+
   # Tags and publishes a GitHub Release for every release PR merged into main.
   # The version comes from the PR title ("release: vX.Y.Z", see
   # Docs/conventions_contract/releases_and_versioning.md), and it only runs once the
