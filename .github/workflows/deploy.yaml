@@ -14,7 +14,9 @@ jobs:
       - name: Sæt Go op
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          # Reads the version from the go directive so deploy cannot drift from go.mod
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
 
       - name: Byg Go-applikationen
         working-directory: ./backend
