@@ -161,8 +161,6 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# --- DB ---
-backend/whoknows.db
 # --- Go backend ---
 # Binary produced by the deploy workflow (go build -o whoknows-app)
 whoknows-app
