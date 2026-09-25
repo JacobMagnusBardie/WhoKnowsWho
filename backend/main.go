@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"log"
@@ -182,12 +183,42 @@ func apiRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if creds.Username == "" || creds.Email == "" || creds.Password == "" {
-		writeValidationError(w, "Missing required field")
+	// Same checks and messages as the legacy Flask app. password2 is only compared when it
+	// is sent, since the API spec doesn't require it.
+	switch {
+	case creds.Username == "":
+		writeValidationError(w, "You have to enter a username")
+		return
+	case creds.Email == "" || !strings.Contains(creds.Email, "@"):
+		writeValidationError(w, "You have to enter a valid email address")
+		return
+	case creds.Password == "":
+		writeValidationError(w, "You have to enter a password")
+		return
+	case creds.Password2 != "" && creds.Password != creds.Password2:
+		writeValidationError(w, "The two passwords do not match")
 		return
 	}
 
-	// TODO: hash password med bcrypt, tjek om username findes, indsæt i DB
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(creds.Password), bcrypt.DefaultCost)
+	if errors.Is(err, bcrypt.ErrPasswordTooLong) {
+		writeValidationError(w, "The password can be at most 72 bytes")
+		return
+	}
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = createUser(r.Context(), creds.Username, creds.Email, hashedPassword)
+	if errors.Is(err, errUserExists) {
+		writeValidationError(w, "The username or email is already taken")
+		return
+	}
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	statusCode := 200
 	message := "User registered successfully"
