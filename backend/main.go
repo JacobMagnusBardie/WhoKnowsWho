@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gorilla/securecookie"
 	"github.com/joho/godotenv"
@@ -131,6 +132,41 @@ func apiSearch(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(SearchResponse{Data: results})
 }
 
+// maxJSONBody caps how much of a JSON request body is read, so a client can't make the server
+// buffer an arbitrarily large payload. r.ParseForm already has its own 10 MB limit.
+const maxJSONBody = 1 << 20 // 1 MB
+
+// readCredentials reads the auth fields from either a JSON body or a form-encoded body.
+// The simulator sends JSON first and only falls back to form data if that fails, so both
+// have to work.
+func readCredentials(w http.ResponseWriter, r *http.Request) (Credentials, error) {
+	var c Credentials
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+		err := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxJSONBody)).Decode(&c)
+		return c, err
+	}
+
+	if err := r.ParseForm(); err != nil {
+		return c, err
+	}
+	c.Username = r.FormValue("username")
+	c.Email = r.FormValue("email")
+	c.Password = r.FormValue("password")
+	c.Password2 = r.FormValue("password2")
+	return c, nil
+}
+
+// writeValidationError sends a 422 with the given message in the HTTPValidationError shape
+// the OpenAPI spec uses.
+func writeValidationError(w http.ResponseWriter, msg string) {
+	w.WriteHeader(http.StatusUnprocessableEntity)
+	if err := json.NewEncoder(w).Encode(HTTPValidationError{
+		Detail: []ValidationError{{Loc: []interface{}{"body"}, Msg: msg, Type: "value_error"}},
+	}); err != nil {
+		log.Printf("writing validation error: %v", err)
+	}
+}
+
 // @Summary Register
 // @Param username formData string true "Username"
 // @Param email formData string true "Email"
@@ -140,19 +176,14 @@ func apiSearch(w http.ResponseWriter, r *http.Request) {
 // @Router /api/register [post]
 func apiRegister(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	if err := r.ParseForm(); err != nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
+	creds, err := readCredentials(w, r)
+	if err != nil {
+		writeValidationError(w, "Invalid request body")
 		return
 	}
-	username := r.FormValue("username")
-	email := r.FormValue("email")
-	password := r.FormValue("password")
 
-	if username == "" || email == "" || password == "" {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		json.NewEncoder(w).Encode(HTTPValidationError{
-			Detail: []ValidationError{{Loc: []interface{}{"body"}, Msg: "Missing required field", Type: "missing"}},
-		})
+	if creds.Username == "" || creds.Email == "" || creds.Password == "" {
+		writeValidationError(w, "Missing required field")
 		return
 	}
 
@@ -171,22 +202,18 @@ func apiRegister(w http.ResponseWriter, r *http.Request) {
 // @Router /api/login [post]
 func apiLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	if err := r.ParseForm(); err != nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		return
-	}
-	username := r.FormValue("username")
-	password := r.FormValue("password")
-
-	if username == "" || password == "" {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		json.NewEncoder(w).Encode(HTTPValidationError{
-			Detail: []ValidationError{{Loc: []interface{}{"body"}, Msg: "Missing required field", Type: "missing"}},
-		})
+	creds, err := readCredentials(w, r)
+	if err != nil {
+		writeValidationError(w, "Invalid request body")
 		return
 	}
 
-	user, err := getUserByUsername(username)
+	if creds.Username == "" || creds.Password == "" {
+		writeValidationError(w, "Missing required field")
+		return
+	}
+
+	user, err := getUserByUsername(creds.Username)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -194,7 +221,7 @@ func apiLogin(w http.ResponseWriter, r *http.Request) {
 
 	// user is nil when the username doesn't exist. Answer exactly like a wrong password,
 	// so the response doesn't reveal which usernames are registered.
-	if user == nil || bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)) != nil {
+	if user == nil || bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(creds.Password)) != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		statusCode := 401
 		message := "Invalid username or password"
