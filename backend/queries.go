@@ -8,9 +8,9 @@ import "database/sql"
 func getUserByUsername(username string) (*User, error) {
 	var u User
 	err := db.QueryRow(
-		`SELECT username, password FROM users WHERE username = ?`,
+		`SELECT id, username, password FROM users WHERE username = ?`,
 		username,
-	).Scan(&u.Username, &u.Password)
+	).Scan(&u.ID, &u.Username, &u.Password)
 
 	if err == sql.ErrNoRows {
 		return nil, nil
