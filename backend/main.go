@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"mime"
 	"net/http"
 	"os"
 	"strings"
@@ -142,7 +143,7 @@ const maxJSONBody = 1 << 20 // 1 MB
 // have to work.
 func readCredentials(w http.ResponseWriter, r *http.Request) (Credentials, error) {
 	var c Credentials
-	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+	if mt, _, err := mime.ParseMediaType(r.Header.Get("Content-Type")); err == nil && mt == "application/json" {
 		err := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxJSONBody)).Decode(&c)
 		return c, err
 	}
