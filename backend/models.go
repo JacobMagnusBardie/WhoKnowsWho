@@ -29,6 +29,15 @@ type User struct {
 	Password string
 }
 
+// Credentials holds the fields posted to /api/register and /api/login, whether they
+// arrive as JSON or form-encoded. Email and Password2 are only used by register.
+type Credentials struct {
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	Password  string `json:"password"`
+	Password2 string `json:"password2"`
+}
+
 // WeatherInfo holds the forecast values shown on the weather page.
 // Kept as its own small struct (rather than loose fields directly on PageData)
 // so the template can simply check `{{if .Weather}}` to know whether forecast

@@ -3,11 +3,14 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"log"
+	"mime"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gorilla/securecookie"
 	"github.com/joho/godotenv"
@@ -131,6 +134,41 @@ func apiSearch(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(SearchResponse{Data: results})
 }
 
+// maxJSONBody caps how much of a JSON request body is read, so a client can't make the server
+// buffer an arbitrarily large payload. r.ParseForm already has its own 10 MB limit.
+const maxJSONBody = 1 << 20 // 1 MB
+
+// readCredentials reads the auth fields from either a JSON body or a form-encoded body.
+// The simulator sends JSON first and only falls back to form data if that fails, so both
+// have to work.
+func readCredentials(w http.ResponseWriter, r *http.Request) (Credentials, error) {
+	var c Credentials
+	if mt, _, err := mime.ParseMediaType(r.Header.Get("Content-Type")); err == nil && mt == "application/json" {
+		err := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxJSONBody)).Decode(&c)
+		return c, err
+	}
+
+	if err := r.ParseForm(); err != nil {
+		return c, err
+	}
+	c.Username = r.FormValue("username")
+	c.Email = r.FormValue("email")
+	c.Password = r.FormValue("password")
+	c.Password2 = r.FormValue("password2")
+	return c, nil
+}
+
+// writeValidationError sends a 422 with the given message in the HTTPValidationError shape
+// the OpenAPI spec uses.
+func writeValidationError(w http.ResponseWriter, msg string) {
+	w.WriteHeader(http.StatusUnprocessableEntity)
+	if err := json.NewEncoder(w).Encode(HTTPValidationError{
+		Detail: []ValidationError{{Loc: []interface{}{"body"}, Msg: msg, Type: "value_error"}},
+	}); err != nil {
+		log.Printf("writing validation error: %v", err)
+	}
+}
+
 // @Summary Register
 // @Param username formData string true "Username"
 // @Param email formData string true "Email"
@@ -140,23 +178,48 @@ func apiSearch(w http.ResponseWriter, r *http.Request) {
 // @Router /api/register [post]
 func apiRegister(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	if err := r.ParseForm(); err != nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		return
-	}
-	username := r.FormValue("username")
-	email := r.FormValue("email")
-	password := r.FormValue("password")
-
-	if username == "" || email == "" || password == "" {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		json.NewEncoder(w).Encode(HTTPValidationError{
-			Detail: []ValidationError{{Loc: []interface{}{"body"}, Msg: "Missing required field", Type: "missing"}},
-		})
+	creds, err := readCredentials(w, r)
+	if err != nil {
+		writeValidationError(w, "Invalid request body")
 		return
 	}
 
-	// TODO: hash password med bcrypt, tjek om username findes, indsæt i DB
+	// Same checks and messages as the legacy Flask app. password2 is only compared when it
+	// is sent, since the API spec doesn't require it.
+	switch {
+	case creds.Username == "":
+		writeValidationError(w, "You have to enter a username")
+		return
+	case creds.Email == "" || !strings.Contains(creds.Email, "@"):
+		writeValidationError(w, "You have to enter a valid email address")
+		return
+	case creds.Password == "":
+		writeValidationError(w, "You have to enter a password")
+		return
+	case creds.Password2 != "" && creds.Password != creds.Password2:
+		writeValidationError(w, "The two passwords do not match")
+		return
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(creds.Password), bcrypt.DefaultCost)
+	if errors.Is(err, bcrypt.ErrPasswordTooLong) {
+		writeValidationError(w, "The password can be at most 72 bytes")
+		return
+	}
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = createUser(r.Context(), creds.Username, creds.Email, hashedPassword)
+	if errors.Is(err, errUserExists) {
+		writeValidationError(w, "The username or email is already taken")
+		return
+	}
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	statusCode := 200
 	message := "User registered successfully"
@@ -171,22 +234,18 @@ func apiRegister(w http.ResponseWriter, r *http.Request) {
 // @Router /api/login [post]
 func apiLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	if err := r.ParseForm(); err != nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		return
-	}
-	username := r.FormValue("username")
-	password := r.FormValue("password")
-
-	if username == "" || password == "" {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		json.NewEncoder(w).Encode(HTTPValidationError{
-			Detail: []ValidationError{{Loc: []interface{}{"body"}, Msg: "Missing required field", Type: "missing"}},
-		})
+	creds, err := readCredentials(w, r)
+	if err != nil {
+		writeValidationError(w, "Invalid request body")
 		return
 	}
 
-	user, err := getUserByUsername(username)
+	if creds.Username == "" || creds.Password == "" {
+		writeValidationError(w, "Missing required field")
+		return
+	}
+
+	user, err := getUserByUsername(creds.Username)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -194,7 +253,7 @@ func apiLogin(w http.ResponseWriter, r *http.Request) {
 
 	// user is nil when the username doesn't exist. Answer exactly like a wrong password,
 	// so the response doesn't reveal which usernames are registered.
-	if user == nil || bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)) != nil {
+	if user == nil || bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(creds.Password)) != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		statusCode := 401
 		message := "Invalid username or password"
