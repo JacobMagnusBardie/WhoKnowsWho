@@ -47,3 +47,26 @@ func createUser(ctx context.Context, username, email string, hashedPassword []by
 	}
 	return err
 }
+
+func searchPages(ctx context.Context, q, language string) ([]SearchResult, error) {
+	rows, err := db.QueryContext(ctx,
+		`SELECT title, url, content FROM pages WHERE language = ? AND content LIKE ?`,
+		language, "%"+q+"%",
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []SearchResult
+	for rows.Next() {
+		var r SearchResult
+		// Note: the DB column is called "content", but we scan it into the
+		// struct's Description field — Scan matches by position, not by name.
+		if err := rows.Scan(&r.Title, &r.URL, &r.Description); err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+	return results, rows.Err()
+}

@@ -82,10 +82,23 @@ func serveRootPage(w http.ResponseWriter, r *http.Request) {
 	// The search page is public (OpenAPI spec: GET / returns 200 text/html); the session only
 	// decides whether the nav shows "Log out" or "Log in / Register".
 	w.Header().Set("Content-Type", contentTypeHTML)
-	query := r.URL.Query().Get("q") // Get the value of the "q" query parameter from the URL. If the parameter is not present, query will be an empty string.
+	query := r.URL.Query().Get("q")
+	language := r.URL.Query().Get("language")
+	if language == "" {
+		language = "en"
+	}
 
-	// TODO: erstat med rigtigt DB-opslag mod pages-tabellen
-	results := []SearchResult{} //Array of SearchResult structs, which is empty for now. This will be populated with search results from the database in the future.
+	// Only hit the database when there's actually something to search for,
+	// matching the legacy behaviour (empty query -> empty results, no lookup).
+	var results []SearchResult
+	if query != "" {
+		var err error
+		results, err = searchPages(r.Context(), query, language)
+		if err != nil {
+			log.Printf("search query failed: %v", err)
+			// Fall through with empty results rather than failing the whole page load.
+		}
+	}
 
 	if err := pages["search"].ExecuteTemplate(w, "layout", PageData{Title: "¿Who Knows?", Query: query, Results: results, User: currentUser(r)}); err != nil {
 		log.Printf("render search page: %v", err)
@@ -117,6 +130,10 @@ func serveLoginPage(w http.ResponseWriter, r *http.Request) {
 // @Router /api/search [get]
 func apiSearch(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
+	language := r.URL.Query().Get("language")
+	if language == "" {
+		language = "en"
+	}
 	w.Header().Set("Content-Type", "application/json")
 
 	if q == "" {
@@ -129,8 +146,11 @@ func apiSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: erstat med rigtigt DB-opslag mod pages-tabellen
-	results := []map[string]interface{}{}
+	results, err := searchPages(r.Context(), q, language)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	json.NewEncoder(w).Encode(SearchResponse{Data: results})
 }
 
