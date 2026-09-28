@@ -48,7 +48,7 @@ func createUser(ctx context.Context, username, email string, hashedPassword []by
 	}
 	return err
 }
-
+// searchPages 
 func searchPages(ctx context.Context, q, language string) ([]SearchResult, error) {
 	rows, err := db.QueryContext(
 		ctx,
