@@ -23,13 +23,12 @@ import (
 // Parses all html pages through Go's template engine. The templates are stored in the "templates" variable and can be used to render HTML pages with dynamic data.
 const htmlDir = "../frontend/html/"
 const contentTypeHTML = "text/html; charset=utf-8"
-const layoutTemplate = htmlDir + "layout.html"
 
 // Each page pairs the shared layout with its own body file, so layout.html template knows what .html to render with a layout. (See L. 25 layout.html)
 var pages = map[string]*template.Template{
-	"login":  template.Must(template.ParseFiles(htmlDir+layoutTemplate, htmlDir+"login.html")),
-	"register": template.Must(template.ParseFiles(htmlDir+layoutTemplate, htmlDir+"register.html")),
-	"search": template.Must(template.ParseFiles(htmlDir+layoutTemplate, htmlDir+"search.html")),
+	"login":    template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"login.html")),
+	"register": template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"register.html")),
+	"search":   template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"search.html")),
 }
 
 // sessionKey signs/verifies session cookie values. Initialized in main() from SESSION_HASH_KEY.
