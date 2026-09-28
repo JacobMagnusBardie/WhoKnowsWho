@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
 
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
@@ -46,4 +47,29 @@ func createUser(ctx context.Context, username, email string, hashedPassword []by
 		return errUserExists
 	}
 	return err
+}
+
+func searchPages(ctx context.Context, q, language string) ([]SearchResult, error) {
+	rows, err := db.QueryContext(
+		ctx,
+		`SELECT title, url, content FROM pages WHERE language = ? AND content LIKE ?`,
+		language, "%"+q+"%",
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("closing search rows: %v", err)
+		}
+	}()
+	results := []SearchResult{}
+	for rows.Next() {
+		var r SearchResult
+		if err := rows.Scan(&r.Title, &r.URL, &r.Description); err != nil {
+			return nil, err
+		}
+		results = append(results, r)
+	}
+	return results, rows.Err()
 }
