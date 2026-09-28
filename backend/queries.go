@@ -56,7 +56,13 @@ func searchPages(ctx context.Context, q, language string) ([]SearchResult, error
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	
+	defer func() {
+		closeErr := rows.Close()
+		if err == nil && closeErr != nil {
+			err = closeErr
+		}
+	}()
 
 	var results []SearchResult
 	for rows.Next() {
