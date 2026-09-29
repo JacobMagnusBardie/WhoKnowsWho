@@ -26,8 +26,9 @@ const contentTypeHTML = "text/html; charset=utf-8"
 
 // Each page pairs the shared layout with its own body file, so layout.html template knows what .html to render with a layout. (See L. 25 layout.html)
 var pages = map[string]*template.Template{
-	"login":  template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"login.html")),
-	"search": template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"search.html")),
+	"login":    template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"login.html")),
+	"register": template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"register.html")),
+	"search":   template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"search.html")),
 }
 
 // sessionKey signs/verifies session cookie values. Initialized in main() from SESSION_HASH_KEY.
@@ -96,7 +97,9 @@ func serveRootPage(w http.ResponseWriter, r *http.Request) {
 // @Router /register [get]
 func serveRegisterPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", contentTypeHTML)
-	fmt.Fprintln(w, "<h1>Register</h1>")
+	if err := pages["register"].ExecuteTemplate(w, "layout", PageData{Title: "Sign Up", User: currentUser(r)}); err != nil {
+		log.Printf("render register page: %v", err)
+	}
 }
 
 // @Summary Serve Login Page
