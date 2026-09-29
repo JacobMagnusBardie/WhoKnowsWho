@@ -6,7 +6,7 @@ type AuthResponse struct {
 }
 
 type SearchResponse struct {
-	Data []map[string]interface{} `json:"data"`
+	Data []SearchResult `json:"data"`
 }
 
 type StandardResponse struct {
