@@ -54,8 +54,9 @@ const (
 )
 
 func searchPages(ctx context.Context, q, language string) (results []SearchResult, err error) {
+	results = []SearchResult{}
+	
 	pattern := "%" + q + "%"
-
 	var rows *sql.Rows
 	rows, err = db.QueryContext(ctx,
 		`SELECT title, url, substr(content, 1, ?) FROM pages
