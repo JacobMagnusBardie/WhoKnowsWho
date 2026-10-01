@@ -10,8 +10,7 @@ import (
 	_ "modernc.org/sqlite" // pure-Go SQLite driver.
 )
 
-
-// checks for provided path, if any, return it. if not, return local path "whoknows.db" 
+// checks for provided path, if any, return it. if not, return local path "whoknows.db"
 func dbPath() string {
 	if p := os.Getenv("DB_PATH"); p != "" {
 		return p
