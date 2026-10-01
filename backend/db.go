@@ -5,12 +5,19 @@ import (
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"log"
+	"os"
 
 	_ "modernc.org/sqlite" // pure-Go SQLite driver.
 )
 
-// dbPath is the location of the SQLite database file, created next to the backend binary/source.
-const dbPath = "whoknows.db"
+
+// checks for provided path, if any, return it. if not, return local path "whoknows.db" 
+func dbPath() string {
+	if p := os.Getenv("DB_PATH"); p != "" {
+		return p
+	}
+	return "whoknows.db"
+}
 
 // db is the shared database handle, initialized by initDB() at startup.
 var db *sql.DB
@@ -44,22 +51,23 @@ CREATE TABLE IF NOT EXISTS pages (
 // If err is not nil, it logs a fatal error and exits the program.
 // This ensures that the database connection is established successfully before proceeding.
 func initDB() *sql.DB {
-	conn, err := sql.Open("sqlite", dbPath)
+	path := dbPath()
+	conn, err := sql.Open("sqlite", path)
 	if err != nil { // function returns nil for its error if it succeeds.
-		log.Fatalf("failed to open database %q: %v", dbPath, err)
+		log.Fatalf("failed to open database %q: %v", path, err)
 	}
 
 	if err := conn.Ping(); err != nil {
-		log.Fatalf("failed to connect to database %q: %v", dbPath, err)
+		log.Fatalf("failed to connect to database %q: %v", path, err)
 	}
 
 	if _, err := conn.Exec(schema); err != nil {
-		log.Fatalf("failed to apply schema to %q: %v", dbPath, err)
+		log.Fatalf("failed to apply schema to %q: %v", path, err)
 	}
 
 	seedDevData(conn)
 
-	fmt.Printf("Database ready at %s\n", dbPath)
+	fmt.Printf("Database ready at %s\n", path)
 	return conn
 }
 
