@@ -11,6 +11,7 @@
   # Runtime stage: only the binary and the frontend files
   FROM alpine:3.22
   WORKDIR /app/backend
+  ENV DB_PATH=/data/whoknows.db
   COPY --from=build /whoknows-app ./
   COPY frontend/ /app/frontend/
   EXPOSE 8080
