@@ -1,5 +1,5 @@
-  .git
-  **/.env
-  **/*.db
-  src/
-  Docs/
+.git
+**/.env
+**/*.db
+src/
+Docs/
