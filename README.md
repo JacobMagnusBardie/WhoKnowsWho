@@ -30,6 +30,16 @@ Server starts on `http://localhost:8080`. The SQLite database (`backend/whoknows
 
 Test login: `testuser` / `password123`
 
+### With Docker
+
+Generate your `backend/.env` with the session key first (see above), then from the repo root:
+
+```bash
+docker compose up --build
+```
+
+The app runs on `localhost:8080`. The SQLite DB is stored in the named volume `whoknows-data`, so it survives `docker compose down`. `docker compose down -v` deletes it.
+
 ## Routes
 
 - Pages: `/`, `/login`, `/register`, `/weather`
