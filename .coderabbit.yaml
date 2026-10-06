@@ -1,32 +1,137 @@
 # CodeRabbit configuration.
 # Docs: https://docs.coderabbit.ai/guides/configure-coderabbit
+# Schema: https://coderabbit.ai/integrations/schema.v2.json
+#
+# Goal: fewer, higher-signal comments. Everything below is tuned to cut noise;
+# if a real problem slips through, loosen the relevant setting rather than
+# adding more instructions.
 language: en-GB
+tone_instructions: >-
+  Be brief and direct. One or two sentences per comment. Say what is wrong and
+  why it matters; skip praise and restating the diff.
 
 reviews:
-  # A short summary is useful in the PR body; the poem is not.
-  high_level_summary: true
-  poem: false
-  review_status: true
+  # chill is the balanced default; quiet gives only the most important feedback
+  # and assertive is the nitpicky one. Start here and move to quiet if it is
+  # still too much - we have a linter and SonarCloud for the small stuff.
+  profile: chill
 
-  # We already run golangci-lint as a required check. CodeRabbit should review
-  # intent and design, not restate what the linter has already annotated.
+  # A short summary is useful in the PR body; the rest of the decoration is not.
+  high_level_summary: true
+  review_status: true
+  poem: false
+  in_progress_fortune: false
+  enable_prompt_for_ai_agents: false
+  sequence_diagrams: false
+  estimate_code_review_effort: false
+  suggested_labels: false
+  suggested_reviewers: false
+  related_prs: false
+
+  # Generated or non-reviewable files. swag writes to backend/docs (the
+  # README still says API-specs, so both are listed), src/ is the legacy Flask
+  # app that is vulnerable on purpose (see .sonarcloud.properties).
+  path_filters:
+    - "!src/**"
+    - "!backend/docs/**"
+    - "!backend/API-specs/**"
+    - "!**/go.sum"
+    - "!**/coverage.out"
+    - "!Docs/**/*.svg"
+    - "!Docs/**/*.png"
+    - "!Docs/**/*.dot"
+
   path_instructions:
+    # Applies everywhere, so the rules below only add to it.
+    - path: "**"
+      instructions: >-
+        Only comment when you are confident something is a real bug, a security
+        problem, data loss, or will break the build or deploy. Do not suggest
+        refactors, renames, extra abstractions, performance micro-optimisations,
+        added docstrings or comments, or additional tests: this team does not
+        require a test per change. If you are unsure whether it matters, stay
+        quiet.
+
     - path: "backend/**/*.go"
       instructions: >-
         Focus on correctness, missing error handling, session and auth mistakes,
-        and whether HTTP handlers match the OpenAPI spec in backend/API-specs.
-        Do not comment on formatting, import order, line length, or anything
-        golangci-lint already reports - see .golangci.yml for the enabled set.
-        Flag any handler that performs a network call without a timeout: the
-        simulator drops a user after 6 seconds on /api/* routes.
+        SQL built by string concatenation instead of placeholders, and whether
+        the swag @Router/@Param/@Success annotations match what the handler
+        really does. Do not comment on formatting, import order, line length,
+        or anything golangci-lint already reports - see .golangci.yml for the
+        enabled set. Flag any handler that performs a network call without a
+        timeout: the simulator drops a user after 6 seconds on /api/* routes.
 
-  path_filters:
-    - "!src/**"
-    - "!backend/API-specs/**"
+    - path: "frontend/html/**"
+      instructions: >-
+        These are Go html/template files; {{ }} actions are valid, not
+        malformed HTML. Only flag XSS (for example template.HTML or unescaped
+        user input), broken template references, or forms that post to a route
+        that does not exist. Ignore markup style and accessibility nitpicks.
 
+    - path: "frontend/static/**"
+      instructions: "Skip. Styling only; do not review."
+
+    - path: ".github/workflows/**"
+      instructions: >-
+        Only flag real breakage: over-broad permissions, secrets exposed to
+        untrusted code, or steps that cannot work. Ignore action version
+        choices and style.
+
+    - path: "Docs/**"
+      instructions: >-
+        Documentation. Do not comment on wording, grammar or formatting. Only
+        flag a statement that contradicts the code or another document in
+        Docs/conventions_contract.
+
+  # Release PRs (dev -> main) were already reviewed on their way into dev and
+  # contain nothing new, so a second review there is pure repetition.
   auto_review:
     enabled: true
     drafts: false
+    # main is the default branch and is always covered; list the others here.
     base_branches:
       - dev
-      - main
+    ignore_title_keywords:
+      - "release:"
+      - "wip"
+    # Stop re-reviewing every push on a long-running branch. Use
+    # `@coderabbitai review` to resume.
+    auto_pause_after_reviewed_commits: 3
+
+  pre_merge_checks:
+    # Go code here is not docstring-heavy; the default 80% threshold would warn
+    # on every PR.
+    docstrings:
+      mode: "off"
+    title:
+      mode: warning
+      requirements: >-
+        Conventional Commits: type(scope)?: lowercase description, imperative,
+        no full stop. Types are feat, fix, docs, refactor, test, chore, ci.
+        A release PR is titled exactly `release: vX.Y.Z`.
+
+  # These add checkboxes to the walkthrough we never use.
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+
+  tools:
+    # Already enforced by the required golangci-lint CI check.
+    golangci-lint:
+      enabled: false
+    # Prose and markdown style findings on Docs/ and the README are noise.
+    markdownlint:
+      enabled: false
+    languagetool:
+      enabled: false
+    # Reports false positives on Go template syntax.
+    htmlhint:
+      enabled: false
+
+issue_enrichment:
+  planning:
+    auto_planning:
+      enabled: false
