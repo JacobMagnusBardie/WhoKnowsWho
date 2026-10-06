@@ -18,6 +18,14 @@ const docTemplate = `{
         "/": {
             "get": {
                 "summary": "Serve Root Page",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "q",
+                        "in": "query"
+                    }
+                ],
                 "responses": {}
             }
         },
@@ -154,6 +162,12 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/main.StandardResponse"
                         }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "$ref": "#/definitions/main.HTTPValidationError"
+                        }
                     }
                 }
             }
@@ -206,9 +220,22 @@ const docTemplate = `{
                 "data": {
                     "type": "array",
                     "items": {
-                        "type": "object",
-                        "additionalProperties": true
+                        "$ref": "#/definitions/main.SearchResult"
                     }
+                }
+            }
+        },
+        "main.SearchResult": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
                 }
             }
         },

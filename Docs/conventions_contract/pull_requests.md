@@ -3,7 +3,8 @@
   Every change reaches dev through a pull request, including one-liners. The title follows the commit format,
   since it becomes the squashed commit on dev.
 
-  The description says what changed, why, how to test it, and closes the issue with Closes #42. Keep pull
+  The description says what changed, why, how to test it, and closes the issue with Closes #42. The template in
+  .github/pull_request_template.md pre-fills this for every PR. Keep pull
   requests under roughly 400 changed lines — review quality collapses past that, and oversized PRs get an
   approval and nothing else.
 
@@ -11,8 +12,8 @@
   pull request, so this always means another person. We accepted that cost deliberately: pull requests #27, #29
   and #30 reached dev with no review and no checks at all.
 
-  Merging into main requires one approving review from someone other than the author. No self-approval on
-  releases.
+  Merging into main requires no approving review. Release PRs are gated by the required CI checks and the
+  Release PR check instead, because the code was already reviewed on its way into dev.
 
   Feature branches are squash-merged into dev so one issue becomes one commit. This is enforced: dev permits no
   other merge method. Reviewers should mark optional comments nit: or question: so blocking feedback is

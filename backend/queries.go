@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
@@ -46,4 +47,53 @@ func createUser(ctx context.Context, username, email string, hashedPassword []by
 		return errUserExists
 	}
 	return err
+}
+
+const (
+	maxSearchResults  = 50  // hard cap until real pagination exists
+	descriptionMaxLen = 200 // characters of content shown as a preview
+)
+
+// escapeLikePattern escapes SQLite LIKE wildcards (% and _) in a user-supplied
+// search string, so a literal search for e.g. "50%" doesn't get interpreted
+// as a wildcard pattern. The escape character itself (\) must also be
+// escaped first, so it isn't mistaken for an escape sequence.
+func escapeLikePattern(s string) string {
+	replacer := strings.NewReplacer(
+		`\`, `\\`,
+		`%`, `\%`,
+		`_`, `\_`,
+	)
+	return replacer.Replace(s)
+}
+
+func searchPages(ctx context.Context, q, language string) (results []SearchResult, err error) {
+	results = []SearchResult{}
+
+	pattern := "%" + escapeLikePattern(q) + "%"
+	var rows *sql.Rows
+	rows, err = db.QueryContext(ctx,
+		`SELECT title, url, substr(content, 1, ?) FROM pages
+		 WHERE language = ? AND (title LIKE ? ESCAPE '\' OR content LIKE ? ESCAPE '\')
+		 LIMIT ?`,
+		descriptionMaxLen, language, pattern, pattern, maxSearchResults,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		closeErr := rows.Close()
+		if err == nil && closeErr != nil {
+			err = closeErr
+		}
+	}()
+
+	for rows.Next() {
+		var r SearchResult
+		if scanErr := rows.Scan(&r.Title, &r.URL, &r.Description); scanErr != nil {
+			return nil, scanErr
+		}
+		results = append(results, r)
+	}
+	return results, rows.Err()
 }

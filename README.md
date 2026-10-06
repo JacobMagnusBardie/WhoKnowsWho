@@ -12,17 +12,33 @@ The living implementation is in [`backend/`](backend) and [`frontend/`](frontend
 
 ## Running
 
-The server refuses to start without `SESSION_HASH_KEY`, which signs the login cookie. Create `backend/.env` once (it is git-ignored, see [`backend/.env.example`](backend/.env.example)):
+The server reads its settings from `backend/.env` (git-ignored):
+
+- `SESSION_HASH_KEY` (required): base64-encoded 32-byte key that signs the login cookie. The server refuses to start without it.
+- `COOKIE_SECURE` (optional, default `false`): set to `true` once the site is served over HTTPS.
+
+Create the file once:
 
 ```bash
 cd backend
 echo "SESSION_HASH_KEY=$(head -c 32 /dev/urandom | base64)" > .env
+echo "COOKIE_SECURE=false" >> .env
 go run .
 ```
 
 Server starts on `http://localhost:8080`. The SQLite database (`backend/whoknows.db`) is created automatically on first run.
 
 Test login: `testuser` / `password123`
+
+### With Docker
+
+Generate your `backend/.env` with the session key first (see above), then from the repo root:
+
+```bash
+docker compose up --build
+```
+
+The app runs on `localhost:8080`. The SQLite DB is stored in the named volume `whoknows-data`, so it survives `docker compose down`. `docker compose down -v` deletes it.
 
 ## Routes
 

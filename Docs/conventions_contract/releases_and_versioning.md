@@ -1,6 +1,6 @@
  4. Releases and Versioning
 
-  A release is a pull request from dev into main, titled release: v0.3.0, approved by one other contributor.
+  A release is a pull request from dev into main, titled release: v0.3.0. It needs no approval, only passing checks.
 
   - The required "Release PR" check blocks any PR into main that doesn't come from dev, isn't titled
     release: vX.Y.Z, or doesn't raise the version above the latest release
@@ -12,10 +12,11 @@
     succeeds. The version is read from the PR title, so it must be exactly release: vX.Y.Z
   - The release notes are generated from PR titles — edit them on GitHub afterwards, don't leave them raw
 
-  Reviewing a release
+  Gating a release
 
-  Everything in a release was already reviewed on its way into dev, so the release review does not re-review
-  the code. The reviewer confirms:
+  Everything in a release was already reviewed on its way into dev, so a release is not reviewed again. We
+  dropped the release approval because requiring review on both dev and main was too slow. Whoever opens the
+  release PR confirms before merging:
 
   - The CI checks (Build, vet and test, golangci-lint) pass
   - The tests pass
@@ -25,6 +26,6 @@
   Cadence and timing
 
   - Release at least once a week, or at the end of a work session when dev has new work. Small releases are
-    quicker to review, and a broken deploy is easier to trace back to its cause
-  - Don't merge into dev while a release PR is open. The release PR's head is dev, so a merge dismisses the
-    approval and adds work nobody approved for release. Open the release, approve it, merge it, then carry on
+    quicker to check, and a broken deploy is easier to trace back to its cause
+  - Don't merge into dev while a release PR is open. The release PR's head is dev, so a merge adds work to the
+    release after its checks were confirmed. Open the release, merge it, then carry on
