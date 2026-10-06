@@ -11,8 +11,8 @@
   pull request, so this always means another person. We accepted that cost deliberately: pull requests #27, #29
   and #30 reached dev with no review and no checks at all.
 
-  Merging into main requires one approving review from someone other than the author. No self-approval on
-  releases.
+  Merging into main requires no approving review. Release PRs are gated by the required CI checks and the
+  Release PR check instead, because the code was already reviewed on its way into dev.
 
   Feature branches are squash-merged into dev so one issue becomes one commit. This is enforced: dev permits no
   other merge method. Reviewers should mark optional comments nit: or question: so blocking feedback is
