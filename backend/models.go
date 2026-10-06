@@ -61,7 +61,7 @@ type PageData struct {
 }
 
 type SearchResult struct {
-Title       string `json:"title"`
-URL         string `json:"url"`
-Description string `json:"description"`
+	Title       string `json:"title"`
+	URL         string `json:"url"`
+	Description string `json:"description"`
 }
