@@ -17,7 +17,7 @@ import (
 
 	httpSwagger "github.com/swaggo/http-swagger" // swagger UI handler
 	"golang.org/x/crypto/bcrypt"
-	_ "whoknows/API-specs" // head -1 go.mod (module path) + /API-specs
+	_ "whoknows/docs" // head -1 go.mod (module path) + /API-specs
 )
 
 // Parses all html pages through Go's template engine. The templates are stored in the "templates" variable and can be used to render HTML pages with dynamic data.

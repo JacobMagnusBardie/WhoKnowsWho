@@ -18,9 +18,17 @@ definitions:
     properties:
       data:
         items:
-          additionalProperties: true
-          type: object
+          $ref: '#/definitions/main.SearchResult'
         type: array
+    type: object
+  main.SearchResult:
+    properties:
+      description:
+        type: string
+      title:
+        type: string
+      url:
+        type: string
     type: object
   main.StandardResponse:
     properties:
@@ -47,6 +55,11 @@ info:
 paths:
   /:
     get:
+      parameters:
+      - description: Search query
+        in: query
+        name: q
+        type: string
       responses: {}
       summary: Serve Root Page
   /api/login:
@@ -137,6 +150,10 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/main.StandardResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/main.HTTPValidationError'
       summary: Weather
   /login:
     get:
