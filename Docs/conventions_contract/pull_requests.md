@@ -3,7 +3,8 @@
   Every change reaches dev through a pull request, including one-liners. The title follows the commit format,
   since it becomes the squashed commit on dev.
 
-  The description says what changed, why, how to test it, and closes the issue with Closes #42. Keep pull
+  The description says what changed, why, how to test it, and closes the issue with Closes #42. The template in
+  .github/pull_request_template.md pre-fills this for every PR. Keep pull
   requests under roughly 400 changed lines — review quality collapses past that, and oversized PRs get an
   approval and nothing else.
 
