@@ -28,13 +28,11 @@ reviews:
   suggested_reviewers: false
   related_prs: false
 
-  # Generated or non-reviewable files. swag writes to backend/docs (the
-  # README still says API-specs, so both are listed), src/ is the legacy Flask
-  # app that is vulnerable on purpose (see .sonarcloud.properties).
+  # Generated or non-reviewable files. swag writes to backend/docs, src/ is
+  # the legacy Flask app that is vulnerable on purpose (see .sonarcloud.properties).
   path_filters:
     - "!src/**"
     - "!backend/docs/**"
-    - "!backend/API-specs/**"
     - "!**/go.sum"
     - "!**/coverage.out"
     - "!Docs/**/*.svg"
