@@ -23,14 +23,14 @@ linters:
     - gosec
     - misspell
   exclusions:
-    # swag writes API-specs/docs.go; do not lint generated code
+    # swag writes docs/docs.go; do not lint generated code
     generated: lax
     paths:
-      - API-specs
+      - docs
 
 formatters:
   enable:
     - gofmt
   exclusions:
     paths:
-      - API-specs
+      - docs

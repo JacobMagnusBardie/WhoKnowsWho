@@ -54,12 +54,12 @@ Pull requests and pushes to `dev`/`main` run [`ci.yaml`](.github/workflows/ci.ya
 
 ## Regenerating the API spec
 
-Endpoint docs are generated from `@Summary`/`@Router` annotations in [`backend/main.go`](backend/main.go) with [swag](https://github.com/swaggo/swag). The output in `backend/API-specs/` is committed, so regenerate and commit it after changing an endpoint's annotations:
+Endpoint docs are generated from `@Summary`/`@Router` annotations in [`backend/main.go`](backend/main.go) with [swag](https://github.com/swaggo/swag). The output in `backend/docs/` is committed, so regenerate and commit it after changing an endpoint's annotations:
 
 ```bash
 go install github.com/swaggo/swag/cmd/swag@latest
 cd backend
-swag init -g main.go -d . -o ./API-specs
+swag init -g main.go -d . -o ./docs
 ```
 
 ## Conventions
