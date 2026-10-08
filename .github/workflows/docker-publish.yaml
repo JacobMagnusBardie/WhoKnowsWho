@@ -2,7 +2,7 @@ name: Publish Docker image
 
 on:
   push:
-    branches: [main]
+    branches: [dev, main]
   workflow_dispatch:   # allows running it manually from the Actions tab
 
 permissions:
@@ -31,7 +31,8 @@ jobs:
         with:
           context: .
           push: true
-          # dev = newest on dev; the commit SHA pins an exact, rollback-able version
+          # main -> :latest (what prod runs), dev -> :dev (for testing); 
+          # the commit SHA pins an exact, rollback-able version
           tags: |
-            ${{ env.IMAGE }}:latest
-            ${{ env.IMAGE }}:${{ github.sha }}
+              ${{ env.IMAGE }}:${{ github.ref_name == 'main' && 'latest' || 'dev' }}
+              ${{ env.IMAGE }}:${{ github.sha }}
