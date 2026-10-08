@@ -34,5 +34,5 @@ jobs:
           # main -> :latest (what prod runs), dev -> :dev (for testing); 
           # the commit SHA pins an exact, rollback-able version
           tags: |
-              ${{ env.IMAGE }}:${{ github.ref_name == 'main' && 'latest' || 'dev' }}
+              ${{ env.IMAGE }}:${{ github.ref_name == 'main' && 'latest' || github.ref_name == 'dev' && 'dev' }}
               ${{ env.IMAGE }}:${{ github.sha }}
