@@ -111,6 +111,10 @@ paths:
         name: password
         required: true
         type: string
+      - description: Repeat password
+        in: formData
+        name: password2
+        type: string
       responses:
         "200":
           description: OK

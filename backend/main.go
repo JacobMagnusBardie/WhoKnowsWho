@@ -196,6 +196,7 @@ func writeValidationError(w http.ResponseWriter, msg string) {
 // @Param username formData string true "Username"
 // @Param email formData string true "Email"
 // @Param password formData string true "Password"
+// @Param password2 formData string false "Repeat password"
 // @Success 200 {object} AuthResponse
 // @Failure 422 {object} HTTPValidationError
 // @Router /api/register [post]

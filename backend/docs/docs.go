@@ -101,6 +101,12 @@ const docTemplate = `{
                         "name": "password",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Repeat password",
+                        "name": "password2",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
