@@ -41,6 +41,12 @@ const docTemplate = `{
         },
         "/api/login": {
             "post": {
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "summary": "Login",
                 "parameters": [
                     {
@@ -76,6 +82,9 @@ const docTemplate = `{
         },
         "/api/logout": {
             "get": {
+                "produces": [
+                    "application/json"
+                ],
                 "summary": "Logout",
                 "responses": {
                     "200": {
@@ -89,6 +98,12 @@ const docTemplate = `{
         },
         "/api/register": {
             "post": {
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "summary": "Register",
                 "parameters": [
                     {
@@ -137,6 +152,9 @@ const docTemplate = `{
         },
         "/api/search": {
             "get": {
+                "produces": [
+                    "application/json"
+                ],
                 "summary": "Search",
                 "parameters": [
                     {
@@ -171,6 +189,9 @@ const docTemplate = `{
         },
         "/api/weather": {
             "get": {
+                "produces": [
+                    "application/json"
+                ],
                 "summary": "Weather",
                 "responses": {
                     "200": {
@@ -262,6 +283,9 @@ const docTemplate = `{
         },
         "SearchResponse": {
             "type": "object",
+            "required": [
+                "data"
+            ],
             "properties": {
                 "data": {
                     "type": "array",
@@ -287,6 +311,9 @@ const docTemplate = `{
         },
         "StandardResponse": {
             "type": "object",
+            "required": [
+                "data"
+            ],
             "properties": {
                 "data": {
                     "type": "object",
@@ -296,6 +323,11 @@ const docTemplate = `{
         },
         "ValidationError": {
             "type": "object",
+            "required": [
+                "loc",
+                "msg",
+                "type"
+            ],
             "properties": {
                 "loc": {
                     "type": "array",

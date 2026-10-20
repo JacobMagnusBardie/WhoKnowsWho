@@ -132,6 +132,7 @@ func serveLoginPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Search
+// @Produce json
 // @Param q query string true "Search query"
 // @Param language query string false "Language code (e.g. 'en')"
 // @Success 200 {object} SearchResponse
@@ -199,6 +200,8 @@ func writeValidationError(w http.ResponseWriter, msg string) {
 }
 
 // @Summary Register
+// @Accept x-www-form-urlencoded
+// @Produce json
 // @Param username formData string true "Username"
 // @Param email formData string true "Email"
 // @Param password formData string true "Password"
@@ -257,6 +260,8 @@ func apiRegister(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Login
+// @Accept x-www-form-urlencoded
+// @Produce json
 // @Param username formData string true "Username"
 // @Param password formData string true "Password"
 // @Success 200 {object} AuthResponse
@@ -315,6 +320,7 @@ func apiLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Logout
+// @Produce json
 // @Success 200 {object} AuthResponse
 // @Router /api/logout [get]
 func apiLogout(w http.ResponseWriter, r *http.Request) {

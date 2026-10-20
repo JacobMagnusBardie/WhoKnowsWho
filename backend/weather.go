@@ -118,6 +118,7 @@ func getWeatherData(ctx context.Context) (map[string]interface{}, error) {
 // --- JSON API endpoint ---
 
 // @Summary Weather
+// @Produce json
 // @Success 200 {object} StandardResponse
 // @Failure 502 {object} HTTPValidationError
 // @Router /api/weather [get]

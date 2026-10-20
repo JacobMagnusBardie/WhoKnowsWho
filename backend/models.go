@@ -6,17 +6,17 @@ type AuthResponse struct {
 } // @name AuthResponse
 
 type SearchResponse struct {
-	Data []SearchResult `json:"data"`
+	Data []SearchResult `json:"data" validate:"required"`
 } // @name SearchResponse
 
 type StandardResponse struct {
-	Data map[string]interface{} `json:"data"`
+	Data map[string]interface{} `json:"data" validate:"required"`
 } // @name StandardResponse
 
 type ValidationError struct {
-	Loc  []interface{} `json:"loc"`
-	Msg  string        `json:"msg"`
-	Type string        `json:"type"`
+	Loc  []interface{} `json:"loc" validate:"required"`
+	Msg  string        `json:"msg" validate:"required"`
+	Type string        `json:"type" validate:"required"`
 } // @name ValidationError
 
 type HTTPValidationError struct {

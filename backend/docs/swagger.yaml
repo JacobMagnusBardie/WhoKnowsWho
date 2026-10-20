@@ -20,6 +20,8 @@ definitions:
         items:
           $ref: '#/definitions/SearchResult'
         type: array
+    required:
+    - data
     type: object
   SearchResult:
     properties:
@@ -35,6 +37,8 @@ definitions:
       data:
         additionalProperties: true
         type: object
+    required:
+    - data
     type: object
   ValidationError:
     properties:
@@ -45,6 +49,10 @@ definitions:
         type: string
       type:
         type: string
+    required:
+    - loc
+    - msg
+    - type
     type: object
 host: localhost:8080
 info:
@@ -70,6 +78,8 @@ paths:
       summary: Serve Root Page
   /api/login:
     post:
+      consumes:
+      - application/x-www-form-urlencoded
       parameters:
       - description: Username
         in: formData
@@ -81,6 +91,8 @@ paths:
         name: password
         required: true
         type: string
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
@@ -93,6 +105,8 @@ paths:
       summary: Login
   /api/logout:
     get:
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
@@ -101,6 +115,8 @@ paths:
       summary: Logout
   /api/register:
     post:
+      consumes:
+      - application/x-www-form-urlencoded
       parameters:
       - description: Username
         in: formData
@@ -121,6 +137,8 @@ paths:
         in: formData
         name: password2
         type: string
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
@@ -143,6 +161,8 @@ paths:
         in: query
         name: language
         type: string
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
@@ -155,6 +175,8 @@ paths:
       summary: Search
   /api/weather:
     get:
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
