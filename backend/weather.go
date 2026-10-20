@@ -158,6 +158,8 @@ func init() {
 }
 
 // @Summary Serve Weather Page
+// @Produce html
+// @Success 200 {string} string "HTML"
 // @Router /weather [get]
 func serveWeatherPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

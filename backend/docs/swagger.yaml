@@ -60,7 +60,13 @@ paths:
         in: query
         name: q
         type: string
-      responses: {}
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML
+          schema:
+            type: string
       summary: Serve Root Page
   /api/login:
     post:
@@ -161,14 +167,32 @@ paths:
       summary: Weather
   /login:
     get:
-      responses: {}
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML
+          schema:
+            type: string
       summary: Serve Login Page
   /register:
     get:
-      responses: {}
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML
+          schema:
+            type: string
       summary: Serve Register Page
   /weather:
     get:
-      responses: {}
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML
+          schema:
+            type: string
       summary: Serve Weather Page
 swagger: "2.0"

@@ -77,7 +77,9 @@ func currentUser(r *http.Request) *User {
 }
 
 // @Summary Serve Root Page
+// @Produce html
 // @Param q query string false "Search query"
+// @Success 200 {string} string "HTML"
 // @Router / [get]
 func serveRootPage(w http.ResponseWriter, r *http.Request) {
 	// The search page is public (OpenAPI spec: GET / returns 200 text/html); the session only
@@ -107,6 +109,8 @@ func serveRootPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Serve Register Page
+// @Produce html
+// @Success 200 {string} string "HTML"
 // @Router /register [get]
 func serveRegisterPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", contentTypeHTML)
@@ -116,6 +120,8 @@ func serveRegisterPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Serve Login Page
+// @Produce html
+// @Success 200 {string} string "HTML"
 // @Router /login [get]
 func serveLoginPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", contentTypeHTML)

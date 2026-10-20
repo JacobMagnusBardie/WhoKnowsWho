@@ -17,6 +17,9 @@ const docTemplate = `{
     "paths": {
         "/": {
             "get": {
+                "produces": [
+                    "text/html"
+                ],
                 "summary": "Serve Root Page",
                 "parameters": [
                     {
@@ -26,7 +29,14 @@ const docTemplate = `{
                         "in": "query"
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "HTML",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
             }
         },
         "/api/login": {
@@ -180,20 +190,50 @@ const docTemplate = `{
         },
         "/login": {
             "get": {
+                "produces": [
+                    "text/html"
+                ],
                 "summary": "Serve Login Page",
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "HTML",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
             }
         },
         "/register": {
             "get": {
+                "produces": [
+                    "text/html"
+                ],
                 "summary": "Serve Register Page",
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "HTML",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
             }
         },
         "/weather": {
             "get": {
+                "produces": [
+                    "text/html"
+                ],
                 "summary": "Serve Weather Page",
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "HTML",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
             }
         }
     },
