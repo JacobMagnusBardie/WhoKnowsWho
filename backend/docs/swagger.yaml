@@ -14,6 +14,19 @@ definitions:
           $ref: '#/definitions/ValidationError'
         type: array
     type: object
+  RequestValidationError:
+    properties:
+      detail:
+        items:
+          $ref: '#/definitions/ValidationError'
+        type: array
+      message:
+        type: string
+        x-nullable: true
+      statusCode:
+        default: 422
+        type: integer
+    type: object
   SearchResponse:
     properties:
       data:
@@ -171,7 +184,7 @@ paths:
         "422":
           description: Unprocessable Entity
           schema:
-            $ref: '#/definitions/HTTPValidationError'
+            $ref: '#/definitions/RequestValidationError'
       summary: Search
   /api/weather:
     get:

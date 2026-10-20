@@ -181,7 +181,7 @@ const docTemplate = `{
                     "422": {
                         "description": "Unprocessable Entity",
                         "schema": {
-                            "$ref": "#/definitions/HTTPValidationError"
+                            "$ref": "#/definitions/RequestValidationError"
                         }
                     }
                 }
@@ -278,6 +278,25 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/ValidationError"
                     }
+                }
+            }
+        },
+        "RequestValidationError": {
+            "type": "object",
+            "properties": {
+                "detail": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ValidationError"
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "x-nullable": true
+                },
+                "statusCode": {
+                    "type": "integer",
+                    "default": 422
                 }
             }
         },

@@ -23,6 +23,14 @@ type HTTPValidationError struct {
 	Detail []ValidationError `json:"detail"`
 } // @name HTTPValidationError
 
+// RequestValidationError describes search validation failures.
+// Detail preserves the existing error information for clients that use it.
+type RequestValidationError struct {
+	StatusCode int               `json:"statusCode" default:"422"`
+	Message    *string           `json:"message,omitempty" extensions:"x-nullable"`
+	Detail     []ValidationError `json:"detail,omitempty"`
+} // @name RequestValidationError
+
 type User struct {
 	ID       int
 	Username string

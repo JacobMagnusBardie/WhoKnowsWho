@@ -136,7 +136,7 @@ func serveLoginPage(w http.ResponseWriter, r *http.Request) {
 // @Param q query string true "Search query"
 // @Param language query string false "Language code (e.g. 'en')"
 // @Success 200 {object} SearchResponse
-// @Failure 422 {object} HTTPValidationError
+// @Failure 422 {object} RequestValidationError
 // @Router /api/search [get]
 func apiSearch(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
@@ -148,11 +148,16 @@ func apiSearch(w http.ResponseWriter, r *http.Request) {
 
 	if q == "" {
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		json.NewEncoder(w).Encode(HTTPValidationError{
+		message := "Field required: q"
+		if err := json.NewEncoder(w).Encode(RequestValidationError{
+			StatusCode: http.StatusUnprocessableEntity,
+			Message:    &message,
 			Detail: []ValidationError{
 				{Loc: []interface{}{"query", "q"}, Msg: "Field required", Type: "missing"},
 			},
-		})
+		}); err != nil {
+			log.Printf("writing search validation error: %v", err)
+		}
 		return
 	}
 
