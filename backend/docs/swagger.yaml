@@ -1,27 +1,27 @@
 basePath: /
 definitions:
-  main.AuthResponse:
+  AuthResponse:
     properties:
       message:
         type: string
       statusCode:
         type: integer
     type: object
-  main.HTTPValidationError:
+  HTTPValidationError:
     properties:
       detail:
         items:
-          $ref: '#/definitions/main.ValidationError'
+          $ref: '#/definitions/ValidationError'
         type: array
     type: object
-  main.SearchResponse:
+  SearchResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/main.SearchResult'
+          $ref: '#/definitions/SearchResult'
         type: array
     type: object
-  main.SearchResult:
+  SearchResult:
     properties:
       description:
         type: string
@@ -30,13 +30,13 @@ definitions:
       url:
         type: string
     type: object
-  main.StandardResponse:
+  StandardResponse:
     properties:
       data:
         additionalProperties: true
         type: object
     type: object
-  main.ValidationError:
+  ValidationError:
     properties:
       loc:
         items: {}
@@ -85,11 +85,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/main.AuthResponse'
+            $ref: '#/definitions/AuthResponse'
         "422":
           description: Unprocessable Entity
           schema:
-            $ref: '#/definitions/main.HTTPValidationError'
+            $ref: '#/definitions/HTTPValidationError'
       summary: Login
   /api/logout:
     get:
@@ -97,7 +97,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/main.AuthResponse'
+            $ref: '#/definitions/AuthResponse'
       summary: Logout
   /api/register:
     post:
@@ -125,11 +125,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/main.AuthResponse'
+            $ref: '#/definitions/AuthResponse'
         "422":
           description: Unprocessable Entity
           schema:
-            $ref: '#/definitions/main.HTTPValidationError'
+            $ref: '#/definitions/HTTPValidationError'
       summary: Register
   /api/search:
     get:
@@ -147,11 +147,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/main.SearchResponse'
+            $ref: '#/definitions/SearchResponse'
         "422":
           description: Unprocessable Entity
           schema:
-            $ref: '#/definitions/main.HTTPValidationError'
+            $ref: '#/definitions/HTTPValidationError'
       summary: Search
   /api/weather:
     get:
@@ -159,11 +159,11 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/main.StandardResponse'
+            $ref: '#/definitions/StandardResponse'
         "502":
           description: Bad Gateway
           schema:
-            $ref: '#/definitions/main.HTTPValidationError'
+            $ref: '#/definitions/HTTPValidationError'
       summary: Weather
   /login:
     get:

@@ -62,13 +62,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/main.AuthResponse"
+                            "$ref": "#/definitions/AuthResponse"
                         }
                     },
                     "422": {
                         "description": "Unprocessable Entity",
                         "schema": {
-                            "$ref": "#/definitions/main.HTTPValidationError"
+                            "$ref": "#/definitions/HTTPValidationError"
                         }
                     }
                 }
@@ -81,7 +81,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/main.AuthResponse"
+                            "$ref": "#/definitions/AuthResponse"
                         }
                     }
                 }
@@ -123,13 +123,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/main.AuthResponse"
+                            "$ref": "#/definitions/AuthResponse"
                         }
                     },
                     "422": {
                         "description": "Unprocessable Entity",
                         "schema": {
-                            "$ref": "#/definitions/main.HTTPValidationError"
+                            "$ref": "#/definitions/HTTPValidationError"
                         }
                     }
                 }
@@ -157,13 +157,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/main.SearchResponse"
+                            "$ref": "#/definitions/SearchResponse"
                         }
                     },
                     "422": {
                         "description": "Unprocessable Entity",
                         "schema": {
-                            "$ref": "#/definitions/main.HTTPValidationError"
+                            "$ref": "#/definitions/HTTPValidationError"
                         }
                     }
                 }
@@ -176,13 +176,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/main.StandardResponse"
+                            "$ref": "#/definitions/StandardResponse"
                         }
                     },
                     "502": {
                         "description": "Bad Gateway",
                         "schema": {
-                            "$ref": "#/definitions/main.HTTPValidationError"
+                            "$ref": "#/definitions/HTTPValidationError"
                         }
                     }
                 }
@@ -238,7 +238,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "main.AuthResponse": {
+        "AuthResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -249,29 +249,29 @@ const docTemplate = `{
                 }
             }
         },
-        "main.HTTPValidationError": {
+        "HTTPValidationError": {
             "type": "object",
             "properties": {
                 "detail": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/main.ValidationError"
+                        "$ref": "#/definitions/ValidationError"
                     }
                 }
             }
         },
-        "main.SearchResponse": {
+        "SearchResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/main.SearchResult"
+                        "$ref": "#/definitions/SearchResult"
                     }
                 }
             }
         },
-        "main.SearchResult": {
+        "SearchResult": {
             "type": "object",
             "properties": {
                 "description": {
@@ -285,7 +285,7 @@ const docTemplate = `{
                 }
             }
         },
-        "main.StandardResponse": {
+        "StandardResponse": {
             "type": "object",
             "properties": {
                 "data": {
@@ -294,7 +294,7 @@ const docTemplate = `{
                 }
             }
         },
-        "main.ValidationError": {
+        "ValidationError": {
             "type": "object",
             "properties": {
                 "loc": {

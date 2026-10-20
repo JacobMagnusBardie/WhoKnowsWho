@@ -3,25 +3,25 @@ package main
 type AuthResponse struct {
 	StatusCode *int    `json:"statusCode,omitempty"`
 	Message    *string `json:"message,omitempty"`
-}
+} // @name AuthResponse
 
 type SearchResponse struct {
 	Data []SearchResult `json:"data"`
-}
+} // @name SearchResponse
 
 type StandardResponse struct {
 	Data map[string]interface{} `json:"data"`
-}
+} // @name StandardResponse
 
 type ValidationError struct {
 	Loc  []interface{} `json:"loc"`
 	Msg  string        `json:"msg"`
 	Type string        `json:"type"`
-}
+} // @name ValidationError
 
 type HTTPValidationError struct {
 	Detail []ValidationError `json:"detail"`
-}
+} // @name HTTPValidationError
 
 type User struct {
 	ID       int
@@ -64,4 +64,4 @@ type SearchResult struct {
 	Title       string `json:"title"`
 	URL         string `json:"url"`
 	Description string `json:"description"`
-}
+} // @name SearchResult
