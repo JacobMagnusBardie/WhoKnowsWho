@@ -1,27 +1,42 @@
 basePath: /
 definitions:
-  main.AuthResponse:
+  AuthResponse:
     properties:
       message:
         type: string
       statusCode:
         type: integer
     type: object
-  main.HTTPValidationError:
+  HTTPValidationError:
     properties:
       detail:
         items:
-          $ref: '#/definitions/main.ValidationError'
+          $ref: '#/definitions/ValidationError'
         type: array
     type: object
-  main.SearchResponse:
+  RequestValidationError:
+    properties:
+      detail:
+        items:
+          $ref: '#/definitions/ValidationError'
+        type: array
+      message:
+        type: string
+        x-nullable: true
+      statusCode:
+        default: 422
+        type: integer
+    type: object
+  SearchResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/main.SearchResult'
+          $ref: '#/definitions/SearchResult'
         type: array
+    required:
+    - data
     type: object
-  main.SearchResult:
+  SearchResult:
     properties:
       description:
         type: string
@@ -30,13 +45,15 @@ definitions:
       url:
         type: string
     type: object
-  main.StandardResponse:
+  StandardResponse:
     properties:
       data:
         additionalProperties: true
         type: object
+    required:
+    - data
     type: object
-  main.ValidationError:
+  ValidationError:
     properties:
       loc:
         items: {}
@@ -45,6 +62,10 @@ definitions:
         type: string
       type:
         type: string
+    required:
+    - loc
+    - msg
+    - type
     type: object
 host: localhost:8080
 info:
@@ -60,10 +81,18 @@ paths:
         in: query
         name: q
         type: string
-      responses: {}
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML
+          schema:
+            type: string
       summary: Serve Root Page
   /api/login:
     post:
+      consumes:
+      - application/x-www-form-urlencoded
       parameters:
       - description: Username
         in: formData
@@ -75,26 +104,32 @@ paths:
         name: password
         required: true
         type: string
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/main.AuthResponse'
+            $ref: '#/definitions/AuthResponse'
         "422":
           description: Unprocessable Entity
           schema:
-            $ref: '#/definitions/main.HTTPValidationError'
+            $ref: '#/definitions/HTTPValidationError'
       summary: Login
   /api/logout:
     get:
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/main.AuthResponse'
+            $ref: '#/definitions/AuthResponse'
       summary: Logout
   /api/register:
     post:
+      consumes:
+      - application/x-www-form-urlencoded
       parameters:
       - description: Username
         in: formData
@@ -111,15 +146,21 @@ paths:
         name: password
         required: true
         type: string
+      - description: Repeat password
+        in: formData
+        name: password2
+        type: string
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/main.AuthResponse'
+            $ref: '#/definitions/AuthResponse'
         "422":
           description: Unprocessable Entity
           schema:
-            $ref: '#/definitions/main.HTTPValidationError'
+            $ref: '#/definitions/HTTPValidationError'
       summary: Register
   /api/search:
     get:
@@ -133,38 +174,60 @@ paths:
         in: query
         name: language
         type: string
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/main.SearchResponse'
+            $ref: '#/definitions/SearchResponse'
         "422":
           description: Unprocessable Entity
           schema:
-            $ref: '#/definitions/main.HTTPValidationError'
+            $ref: '#/definitions/RequestValidationError'
       summary: Search
   /api/weather:
     get:
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/main.StandardResponse'
+            $ref: '#/definitions/StandardResponse'
         "502":
           description: Bad Gateway
           schema:
-            $ref: '#/definitions/main.HTTPValidationError'
+            $ref: '#/definitions/HTTPValidationError'
       summary: Weather
   /login:
     get:
-      responses: {}
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML
+          schema:
+            type: string
       summary: Serve Login Page
   /register:
     get:
-      responses: {}
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML
+          schema:
+            type: string
       summary: Serve Register Page
   /weather:
     get:
-      responses: {}
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML
+          schema:
+            type: string
       summary: Serve Weather Page
 swagger: "2.0"
