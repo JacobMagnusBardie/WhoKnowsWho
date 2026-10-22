@@ -1,0 +1,29 @@
+name: Feature / task
+description: New functionality, an improvement, or a DevOps task (CI, deploy, monitoring ...)
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: why
+    attributes:
+      label: What and why
+      description: What should be added or changed, and what problem does it solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: done
+    attributes:
+      label: Acceptance criteria
+      description: How do we know it is done?
+      value: |
+        - [ ] 
+        - [ ] 
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Ideas for how to do it, links, related issues (#123), assignment requirements.
