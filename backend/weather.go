@@ -118,6 +118,7 @@ func getWeatherData(ctx context.Context) (map[string]interface{}, error) {
 // --- JSON API endpoint ---
 
 // @Summary Weather
+// @Produce json
 // @Success 200 {object} StandardResponse
 // @Failure 502 {object} HTTPValidationError
 // @Router /api/weather [get]
@@ -158,6 +159,8 @@ func init() {
 }
 
 // @Summary Serve Weather Page
+// @Produce html
+// @Success 200 {string} string "HTML"
 // @Router /weather [get]
 func serveWeatherPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
