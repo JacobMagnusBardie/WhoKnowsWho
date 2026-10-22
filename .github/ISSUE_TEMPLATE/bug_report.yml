@@ -1,0 +1,50 @@
+name: Bug report
+description: Something is broken or behaves wrong
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Describe the bug, and what you expected to happen instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Run `go run .` in `backend/`
+        2. Go to http://localhost:8080/...
+        3. Click ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Where does it happen?
+      multiple: true
+      options:
+        - Locally (go run)
+        - Docker (docker compose)
+        - Deployed server
+        - CI (GitHub Actions)
+    validations:
+      required: true
+
+  - type: input
+    id: commit
+    attributes:
+      label: Branch / commit
+      description: Output of `git rev-parse --short HEAD`, or the branch name.
+      placeholder: dev @ a1b2c3d
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or error output
+      description: Paste relevant output. It is formatted as code automatically, so no backticks needed.
+      render: shell
