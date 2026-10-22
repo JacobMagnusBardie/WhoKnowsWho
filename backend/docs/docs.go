@@ -17,6 +17,9 @@ const docTemplate = `{
     "paths": {
         "/": {
             "get": {
+                "produces": [
+                    "text/html"
+                ],
                 "summary": "Serve Root Page",
                 "parameters": [
                     {
@@ -26,11 +29,24 @@ const docTemplate = `{
                         "in": "query"
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "HTML",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
             }
         },
         "/api/login": {
             "post": {
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "summary": "Login",
                 "parameters": [
                     {
@@ -52,13 +68,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/main.AuthResponse"
+                            "$ref": "#/definitions/AuthResponse"
                         }
                     },
                     "422": {
                         "description": "Unprocessable Entity",
                         "schema": {
-                            "$ref": "#/definitions/main.HTTPValidationError"
+                            "$ref": "#/definitions/HTTPValidationError"
                         }
                     }
                 }
@@ -66,12 +82,15 @@ const docTemplate = `{
         },
         "/api/logout": {
             "get": {
+                "produces": [
+                    "application/json"
+                ],
                 "summary": "Logout",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/main.AuthResponse"
+                            "$ref": "#/definitions/AuthResponse"
                         }
                     }
                 }
@@ -79,6 +98,12 @@ const docTemplate = `{
         },
         "/api/register": {
             "post": {
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
                 "summary": "Register",
                 "parameters": [
                     {
@@ -101,19 +126,25 @@ const docTemplate = `{
                         "name": "password",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Repeat password",
+                        "name": "password2",
+                        "in": "formData"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/main.AuthResponse"
+                            "$ref": "#/definitions/AuthResponse"
                         }
                     },
                     "422": {
                         "description": "Unprocessable Entity",
                         "schema": {
-                            "$ref": "#/definitions/main.HTTPValidationError"
+                            "$ref": "#/definitions/HTTPValidationError"
                         }
                     }
                 }
@@ -121,6 +152,9 @@ const docTemplate = `{
         },
         "/api/search": {
             "get": {
+                "produces": [
+                    "application/json"
+                ],
                 "summary": "Search",
                 "parameters": [
                     {
@@ -141,13 +175,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/main.SearchResponse"
+                            "$ref": "#/definitions/SearchResponse"
                         }
                     },
                     "422": {
                         "description": "Unprocessable Entity",
                         "schema": {
-                            "$ref": "#/definitions/main.HTTPValidationError"
+                            "$ref": "#/definitions/RequestValidationError"
                         }
                     }
                 }
@@ -155,18 +189,21 @@ const docTemplate = `{
         },
         "/api/weather": {
             "get": {
+                "produces": [
+                    "application/json"
+                ],
                 "summary": "Weather",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/main.StandardResponse"
+                            "$ref": "#/definitions/StandardResponse"
                         }
                     },
                     "502": {
                         "description": "Bad Gateway",
                         "schema": {
-                            "$ref": "#/definitions/main.HTTPValidationError"
+                            "$ref": "#/definitions/HTTPValidationError"
                         }
                     }
                 }
@@ -174,25 +211,55 @@ const docTemplate = `{
         },
         "/login": {
             "get": {
+                "produces": [
+                    "text/html"
+                ],
                 "summary": "Serve Login Page",
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "HTML",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
             }
         },
         "/register": {
             "get": {
+                "produces": [
+                    "text/html"
+                ],
                 "summary": "Serve Register Page",
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "HTML",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
             }
         },
         "/weather": {
             "get": {
+                "produces": [
+                    "text/html"
+                ],
                 "summary": "Serve Weather Page",
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "HTML",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
             }
         }
     },
     "definitions": {
-        "main.AuthResponse": {
+        "AuthResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -203,29 +270,51 @@ const docTemplate = `{
                 }
             }
         },
-        "main.HTTPValidationError": {
+        "HTTPValidationError": {
             "type": "object",
             "properties": {
                 "detail": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/main.ValidationError"
+                        "$ref": "#/definitions/ValidationError"
                     }
                 }
             }
         },
-        "main.SearchResponse": {
+        "RequestValidationError": {
             "type": "object",
+            "properties": {
+                "detail": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/ValidationError"
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "x-nullable": true
+                },
+                "statusCode": {
+                    "type": "integer",
+                    "default": 422
+                }
+            }
+        },
+        "SearchResponse": {
+            "type": "object",
+            "required": [
+                "data"
+            ],
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/main.SearchResult"
+                        "$ref": "#/definitions/SearchResult"
                     }
                 }
             }
         },
-        "main.SearchResult": {
+        "SearchResult": {
             "type": "object",
             "properties": {
                 "description": {
@@ -239,8 +328,11 @@ const docTemplate = `{
                 }
             }
         },
-        "main.StandardResponse": {
+        "StandardResponse": {
             "type": "object",
+            "required": [
+                "data"
+            ],
             "properties": {
                 "data": {
                     "type": "object",
@@ -248,8 +340,13 @@ const docTemplate = `{
                 }
             }
         },
-        "main.ValidationError": {
+        "ValidationError": {
             "type": "object",
+            "required": [
+                "loc",
+                "msg",
+                "type"
+            ],
             "properties": {
                 "loc": {
                     "type": "array",

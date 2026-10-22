@@ -3,25 +3,33 @@ package main
 type AuthResponse struct {
 	StatusCode *int    `json:"statusCode,omitempty"`
 	Message    *string `json:"message,omitempty"`
-}
+} // @name AuthResponse
 
 type SearchResponse struct {
-	Data []SearchResult `json:"data"`
-}
+	Data []SearchResult `json:"data" validate:"required"`
+} // @name SearchResponse
 
 type StandardResponse struct {
-	Data map[string]interface{} `json:"data"`
-}
+	Data map[string]interface{} `json:"data" validate:"required"`
+} // @name StandardResponse
 
 type ValidationError struct {
-	Loc  []interface{} `json:"loc"`
-	Msg  string        `json:"msg"`
-	Type string        `json:"type"`
-}
+	Loc  []interface{} `json:"loc" validate:"required"`
+	Msg  string        `json:"msg" validate:"required"`
+	Type string        `json:"type" validate:"required"`
+} // @name ValidationError
 
 type HTTPValidationError struct {
 	Detail []ValidationError `json:"detail"`
-}
+} // @name HTTPValidationError
+
+// RequestValidationError describes search validation failures.
+// Detail preserves the existing error information for clients that use it.
+type RequestValidationError struct {
+	StatusCode int               `json:"statusCode" default:"422"`
+	Message    *string           `json:"message,omitempty" extensions:"x-nullable"`
+	Detail     []ValidationError `json:"detail,omitempty"`
+} // @name RequestValidationError
 
 type User struct {
 	ID       int
@@ -64,4 +72,4 @@ type SearchResult struct {
 	Title       string `json:"title"`
 	URL         string `json:"url"`
 	Description string `json:"description"`
-}
+} // @name SearchResult

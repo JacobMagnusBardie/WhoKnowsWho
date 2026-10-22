@@ -77,7 +77,9 @@ func currentUser(r *http.Request) *User {
 }
 
 // @Summary Serve Root Page
+// @Produce html
 // @Param q query string false "Search query"
+// @Success 200 {string} string "HTML"
 // @Router / [get]
 func serveRootPage(w http.ResponseWriter, r *http.Request) {
 	// The search page is public (OpenAPI spec: GET / returns 200 text/html); the session only
@@ -107,6 +109,8 @@ func serveRootPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Serve Register Page
+// @Produce html
+// @Success 200 {string} string "HTML"
 // @Router /register [get]
 func serveRegisterPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", contentTypeHTML)
@@ -116,6 +120,8 @@ func serveRegisterPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Serve Login Page
+// @Produce html
+// @Success 200 {string} string "HTML"
 // @Router /login [get]
 func serveLoginPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", contentTypeHTML)
@@ -126,10 +132,11 @@ func serveLoginPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Search
+// @Produce json
 // @Param q query string true "Search query"
 // @Param language query string false "Language code (e.g. 'en')"
 // @Success 200 {object} SearchResponse
-// @Failure 422 {object} HTTPValidationError
+// @Failure 422 {object} RequestValidationError
 // @Router /api/search [get]
 func apiSearch(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
@@ -141,11 +148,16 @@ func apiSearch(w http.ResponseWriter, r *http.Request) {
 
 	if q == "" {
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		json.NewEncoder(w).Encode(HTTPValidationError{
+		message := "Field required: q"
+		if err := json.NewEncoder(w).Encode(RequestValidationError{
+			StatusCode: http.StatusUnprocessableEntity,
+			Message:    &message,
 			Detail: []ValidationError{
 				{Loc: []interface{}{"query", "q"}, Msg: "Field required", Type: "missing"},
 			},
-		})
+		}); err != nil {
+			log.Printf("writing search validation error: %v", err)
+		}
 		return
 	}
 
@@ -193,9 +205,12 @@ func writeValidationError(w http.ResponseWriter, msg string) {
 }
 
 // @Summary Register
+// @Accept x-www-form-urlencoded
+// @Produce json
 // @Param username formData string true "Username"
 // @Param email formData string true "Email"
 // @Param password formData string true "Password"
+// @Param password2 formData string false "Repeat password"
 // @Success 200 {object} AuthResponse
 // @Failure 422 {object} HTTPValidationError
 // @Router /api/register [post]
@@ -250,6 +265,8 @@ func apiRegister(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Login
+// @Accept x-www-form-urlencoded
+// @Produce json
 // @Param username formData string true "Username"
 // @Param password formData string true "Password"
 // @Success 200 {object} AuthResponse
@@ -308,6 +325,7 @@ func apiLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Logout
+// @Produce json
 // @Success 200 {object} AuthResponse
 // @Router /api/logout [get]
 func apiLogout(w http.ResponseWriter, r *http.Request) {
