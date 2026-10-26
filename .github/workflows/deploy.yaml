@@ -4,54 +4,100 @@ on:
   push:
     branches: [main]
 
+# Never run two deploys at once; a second release waits for the first to finish
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  # ghcr.io requires a lowercase image name
+  IMAGE: ghcr.io/jacobmagnusbardie/whoknows
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write      # lets GITHUB_TOKEN add tags in ghcr.io
     steps:
-      - name: Checkout kode
+      # Depth 2: the merge commit plus its parents, so HEAD^2 (the dev commit) is available
+      - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Sæt Go op
-        uses: actions/setup-go@v5
         with:
-          # Reads the version from the go directive so deploy cannot drift from go.mod
-          go-version-file: backend/go.mod
-          cache-dependency-path: backend/go.sum
+          fetch-depth: 2
 
-      - name: Byg Go-applikationen
-        working-directory: ./backend
-        run: go build -o whoknows-app .
+      # Build once, promote: production runs the exact image that was built and tested from dev,
+      # not a rebuild that could pull newer base images (alpine/golang tags move over time).
+      - name: Find the dev commit behind this release
+        id: source
+        run: |
+          # A release PR is merged with a merge commit, so parent 2 is the tip of dev
+          if ! dev_sha=$(git rev-parse --verify --quiet HEAD^2); then
+            echo "::error::HEAD is not a merge commit – releases must be merged with a merge commit"
+            exit 1
+          fi
+          # Same tree = main contains exactly the code the dev image was built from
+          if ! git diff --quiet "$dev_sha" HEAD; then
+            echo "::error::main differs from $dev_sha – the dev image does not match this release"
+            exit 1
+          fi
+          echo "sha=$dev_sha" >> "$GITHUB_OUTPUT"
 
-      - name: Kopiér filer til VM via SCP
-        uses: appleboy/scp-action@v0.1.7
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          host: ${{ secrets.AZURE_VM_HOST }}
-          username: ${{ secrets.AZURE_VM_USER }}
-          key: ${{ secrets.AZURE_VM_SSH_KEY }}
-          source: "backend/whoknows-app,frontend/*"
-          target: "/home/${{ secrets.AZURE_VM_USER }}/whoknows"
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Ret SELinux-kontekst på binary
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.AZURE_VM_HOST }}
-          username: ${{ secrets.AZURE_VM_USER }}
-          key: ${{ secrets.AZURE_VM_SSH_KEY }}
-          script: sudo chcon -t bin_t /home/${{ secrets.AZURE_VM_USER }}/whoknows/backend/whoknows-app
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Genstart applikationen på VM'en
+      # If the release PR was merged right after the last dev merge, docker-publish.yaml may still
+      # be building that image. Wait up to 10 minutes; fail if it never appears.
+      - name: Wait for the dev image
+        run: |
+          for i in $(seq 1 60); do
+            docker buildx imagetools inspect "${{ env.IMAGE }}:${{ steps.source.outputs.sha }}" > /dev/null 2>&1 && exit 0
+            sleep 10
+          done
+          echo "::error::Image ${{ env.IMAGE }}:${{ steps.source.outputs.sha }} not found – did 'Publish Docker image' succeed on dev?"
+          exit 1
+
+      # Adds tags in the registry only: same digest, no rebuild, nothing downloaded
+      - name: Promote the dev image to latest
+        run: |
+          docker buildx imagetools create \
+            -t ${{ env.IMAGE }}:latest \
+            -t ${{ env.IMAGE }}:${{ github.sha }} \
+            ${{ env.IMAGE }}:${{ steps.source.outputs.sha }}
+
+      # The database lives in /srv/whoknows/data on the VM (bind mount) and the secrets in
+      # /srv/whoknows/.env, so replacing the container keeps all data and sessions.
+      - name: Start the new container on the VM
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.AZURE_VM_HOST }}
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           script: |
-            sudo systemctl restart whoknows
+            set -e
+            # Run the exact image promoted in this workflow, not whatever "latest" points to
+            docker pull ${{ env.IMAGE }}:${{ github.sha }}
+            docker stop whoknows || true
+            docker rm whoknows || true
+            docker run -d --name whoknows --restart unless-stopped \
+              -p 8080:8080 \
+              --env-file /srv/whoknows/.env \
+              -v /srv/whoknows/data:/data:Z \
+              ${{ env.IMAGE }}:${{ github.sha }}
+            # Remove old images no container uses, so the VM disk does not fill up
+            docker image prune -f
 
-      # systemctl restart succeeds as soon as the process starts, even if the app exits a second
+      # docker run succeeds as soon as the container starts, even if the app exits a second
       # later (e.g. missing SESSION_HASH_KEY). Wait for it to answer, so a broken deploy fails here
       # and the release job below never runs.
-      - name: Tjek at applikationen svarer
+      - name: Check that the application responds
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.AZURE_VM_HOST }}
@@ -62,7 +108,7 @@ jobs:
               curl -fsS -o /dev/null http://localhost:8080/ && exit 0
               sleep 2
             done
-            sudo journalctl -u whoknows -n 30 --no-pager
+            docker logs --tail 30 whoknows
             exit 1
 
   # Tags and publishes a GitHub Release for every release PR merged into main.
