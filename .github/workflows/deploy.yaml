@@ -20,10 +20,10 @@ jobs:
       contents: read
       packages: write      # lets GITHUB_TOKEN push to ghcr.io
     steps:
-      - name: Checkout kode
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Log ind på GitHub Container Registry
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -31,7 +31,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # Built in the same job as the deploy, so the image always exists before the VM pulls it
-      - name: Byg og push image
+      - name: Build and push image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -43,7 +43,7 @@ jobs:
 
       # The database lives in /srv/whoknows/data on the VM (bind mount) and the secrets in
       # /srv/whoknows/.env, so replacing the container keeps all data and sessions.
-      - name: Start den nye container på VM'en
+      - name: Start the new container on the VM
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.AZURE_VM_HOST }}
@@ -66,7 +66,7 @@ jobs:
       # docker run succeeds as soon as the container starts, even if the app exits a second
       # later (e.g. missing SESSION_HASH_KEY). Wait for it to answer, so a broken deploy fails here
       # and the release job below never runs.
-      - name: Tjek at applikationen svarer
+      - name: Check that the application responds
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.AZURE_VM_HOST }}
