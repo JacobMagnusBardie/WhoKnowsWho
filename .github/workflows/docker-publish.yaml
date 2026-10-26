@@ -1,9 +1,10 @@
 name: Publish Docker image
 
+# Only dev: main is built, pushed and deployed in one job in deploy.yaml, so the VM never
+# tries to pull an image that a separate workflow has not pushed yet.
 on:
   push:
-    branches: [dev, main]
-  workflow_dispatch:   # allows running it manually from the Actions tab
+    branches: [dev]
 
 permissions:
   contents: read
@@ -31,8 +32,7 @@ jobs:
         with:
           context: .
           push: true
-          # main -> :latest (what prod runs), dev -> :dev (for testing); 
-          # the commit SHA pins an exact, rollback-able version
+          # :dev = the next release, for testing; the commit SHA pins an exact version
           tags: |
-              ${{ env.IMAGE }}:${{ github.ref_name == 'main' && 'latest' || github.ref_name == 'dev' && 'dev' }}
-              ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:dev
+            ${{ env.IMAGE }}:${{ github.sha }}
