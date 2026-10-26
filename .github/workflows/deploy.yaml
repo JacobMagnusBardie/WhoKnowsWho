@@ -18,10 +18,30 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write      # lets GITHUB_TOKEN push to ghcr.io
+      packages: write      # lets GITHUB_TOKEN add tags in ghcr.io
     steps:
+      # Depth 2: the merge commit plus its parents, so HEAD^2 (the dev commit) is available
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      # Build once, promote: production runs the exact image that was built and tested from dev,
+      # not a rebuild that could pull newer base images (alpine/golang tags move over time).
+      - name: Find the dev commit behind this release
+        id: source
+        run: |
+          # A release PR is merged with a merge commit, so parent 2 is the tip of dev
+          if ! dev_sha=$(git rev-parse --verify --quiet HEAD^2); then
+            echo "::error::HEAD is not a merge commit – releases must be merged with a merge commit"
+            exit 1
+          fi
+          # Same tree = main contains exactly the code the dev image was built from
+          if ! git diff --quiet "$dev_sha" HEAD; then
+            echo "::error::main differs from $dev_sha – the dev image does not match this release"
+            exit 1
+          fi
+          echo "sha=$dev_sha" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -30,16 +50,27 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Built in the same job as the deploy, so the image always exists before the VM pulls it
-      - name: Build and push image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          # :latest = what prod runs; the commit SHA is what the VM actually starts
-          tags: |
-            ${{ env.IMAGE }}:latest
-            ${{ env.IMAGE }}:${{ github.sha }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # If the release PR was merged right after the last dev merge, docker-publish.yaml may still
+      # be building that image. Wait up to 10 minutes; fail if it never appears.
+      - name: Wait for the dev image
+        run: |
+          for i in $(seq 1 60); do
+            docker buildx imagetools inspect "${{ env.IMAGE }}:${{ steps.source.outputs.sha }}" > /dev/null 2>&1 && exit 0
+            sleep 10
+          done
+          echo "::error::Image ${{ env.IMAGE }}:${{ steps.source.outputs.sha }} not found – did 'Publish Docker image' succeed on dev?"
+          exit 1
+
+      # Adds tags in the registry only: same digest, no rebuild, nothing downloaded
+      - name: Promote the dev image to latest
+        run: |
+          docker buildx imagetools create \
+            -t ${{ env.IMAGE }}:latest \
+            -t ${{ env.IMAGE }}:${{ github.sha }} \
+            ${{ env.IMAGE }}:${{ steps.source.outputs.sha }}
 
       # The database lives in /srv/whoknows/data on the VM (bind mount) and the secrets in
       # /srv/whoknows/.env, so replacing the container keeps all data and sessions.
@@ -51,7 +82,7 @@ jobs:
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           script: |
             set -e
-            # Run the exact image built in this workflow, not whatever "latest" points to
+            # Run the exact image promoted in this workflow, not whatever "latest" points to
             docker pull ${{ env.IMAGE }}:${{ github.sha }}
             docker stop whoknows || true
             docker rm whoknows || true
