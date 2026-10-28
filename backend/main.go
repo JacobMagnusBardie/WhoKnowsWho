@@ -348,23 +348,7 @@ func apiLogout(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// @title WhoKnows API
-// @version 0.1.0
-// @description API for søgning, login og vejr i WhoKnows-projektet.
-// @host localhost:8080
-// @BasePath /
-func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Println("no .env file found, relying on process environment")
-	}
-	sessionKey = loadSessionKey()
-	cookieSecure = os.Getenv("COOKIE_SECURE") == "true"
-
-	// Initialize the database connection and ensure the schema is applied.
-	// The db variable is a global handle to the SQLite database, which is used by the API handlers to perform queries and updates.
-	db = initDB()
-	defer db.Close() // defer meaning: ensures that the database connection is closed when the main function exits, preventing resource leaks.
-
+func newMux() *http.ServeMux {
 	mux := http.NewServeMux()
 
 	// Serve /static/* (CSS, images, osv) from ../frontend/static
@@ -383,6 +367,28 @@ func main() {
 
 	// Swagger UI endpoint
 	mux.Handle("GET /swagger/", httpSwagger.WrapHandler)
+
+	return mux
+}
+
+// @title WhoKnows API
+// @version 0.1.0
+// @description API for søgning, login og vejr i WhoKnows-projektet.
+// @host localhost:8080
+// @BasePath /
+func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Println("no .env file found, relying on process environment")
+	}
+	sessionKey = loadSessionKey()
+	cookieSecure = os.Getenv("COOKIE_SECURE") == "true"
+
+	// Initialize the database connection and ensure the schema is applied.
+	// The db variable is a global handle to the SQLite database, which is used by the API handlers to perform queries and updates.
+	db = initDB()
+	defer db.Close() // defer meaning: ensures that the database connection is closed when the main function exits, preventing resource leaks.
+
+	mux := newMux()
 
 	fmt.Println("Server running on :8080")
 	http.ListenAndServe(":8080", mux)
