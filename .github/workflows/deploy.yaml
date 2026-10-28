@@ -84,9 +84,10 @@ jobs:
             set -e
             # Run the exact image promoted in this workflow, not whatever "latest" points to
             docker pull ${{ env.IMAGE }}:${{ github.sha }}
+            sudo mkdir -p /srv/whoknows/data
+            sudo chown -R 10001:10001 /srv/whoknows/data
             docker stop whoknows || true
             docker rm whoknows || true
-            sudo chown -R 10001:10001 /srv/whoknows/data
             docker run -d --name whoknows --restart unless-stopped \
               -p 8080:8080 \
               --env-file /srv/whoknows/.env \
