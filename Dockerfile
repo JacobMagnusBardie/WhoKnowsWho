@@ -17,5 +17,6 @@ WORKDIR /app/backend
 ENV DB_PATH=/data/whoknows.db
 COPY --from=build /whoknows-app ./
 COPY frontend/ /app/frontend/
+USER 10001:10001
 EXPOSE 8080
 CMD ["./whoknows-app"]
