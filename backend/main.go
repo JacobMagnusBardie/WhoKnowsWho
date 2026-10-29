@@ -386,7 +386,12 @@ func main() {
 	// Initialize the database connection and ensure the schema is applied.
 	// The db variable is a global handle to the SQLite database, which is used by the API handlers to perform queries and updates.
 	db = initDB()
-	defer db.Close() // defer meaning: ensures that the database connection is closed when the main function exits, preventing resource leaks.
+	// defer meaning: ensures that the database connection is closed when the main function exits, preventing resource leaks.
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("closing database: %v", err)
+		}
+	}()
 
 	mux := newMux()
 
