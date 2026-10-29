@@ -27,9 +27,9 @@ npx playwright test
 
 ## Test types we skipped, and why
 
-- **More browsers (Firefox, Edge, etc):** the end-to-end test checks that our selectors exist and work. That doesn't depend on the browser, and each extra browser makes CI slower.
-- **Load and performance tests:** simulator performance is not graded, and the simulator itself already puts realistic load on the production app.
-- **Smoke test after deploy:** `deploy.yaml` already checks that the app answers before it tags a release. A fuller smoke test is tracked in #80.
-- **Weather page:** it calls an external API (Open-Meteo). Testing it would need a fake server for that API, which isn't worth it for a page outside the simulator's scope.
-- **Fuzz and mutation testing:** useful for parsers and critical logic, but our inputs are already handled by SQL placeholders and `escapeLikePattern`, which has a table test.
-- **Visual regression (screenshot comparison):** the frontend may change freely; only the selectors must stay, and the end-to-end test covers those.
+- **Load testing:** speed isn't graded, and loading the production VM would slow down the simulator's real users. We watch real traffic through monitoring instead.
+- **More browsers:** our inputs and buttons are plain HTML that works the same in every browser, and each extra browser slows CI down.
+- **Smoke test after deploy:** `deploy.yaml` already waits for the app to answer before it tags a release. A fuller check is tracked in #80.
+- **Weather:** it calls an external API, so testing it needs a fake version of that API. Weather isn't part of the simulation.
+- **Fuzz and mutation testing:** our input handling is small (`?` placeholders and `escapeLikePattern`), so there is little for them to find.
+- **Visual regression:** the design may change freely. Only the selectors must stay, and the end-to-end test covers those.
