@@ -63,3 +63,14 @@ jobs:
           # Gate NEW code only, so the check is green today and the debt cannot
           # grow. Running `golangci-lint run` locally still reports everything.
           args: --new-from-merge-base=origin/${{ github.base_ref || 'dev' }}
+
+  hadolint:
+    name: hadolint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: warning
