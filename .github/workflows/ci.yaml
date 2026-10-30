@@ -63,3 +63,41 @@ jobs:
           # Gate NEW code only, so the check is green today and the debt cannot
           # grow. Running `golangci-lint run` locally still reports everything.
           args: --new-from-merge-base=origin/${{ github.base_ref || 'dev' }}
+
+  e2e:
+    name: End-to-end (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Playwright starts the app with `go run .` (see e2e/playwright.config.js)
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./e2e
+        run: npm ci
+
+      - name: Install Chromium
+        working-directory: ./e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Run end-to-end tests
+        working-directory: ./e2e
+        run: npx playwright test
+
+      # The HTML report holds a trace (screenshots, DOM, network) of every failed test
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 7
