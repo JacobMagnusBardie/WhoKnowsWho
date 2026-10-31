@@ -72,9 +72,20 @@ jobs:
             -t ${{ env.IMAGE }}:${{ github.sha }} \
             ${{ env.IMAGE }}:${{ steps.source.outputs.sha }}
 
+      # compose.yaml and nginx.conf are the source of truth for the stack, so copy them on every
+      # deploy. Nginx mounts nginx.conf from the same directory.
+      - name: Copy compose files to the VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.AZURE_VM_HOST }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          source: "compose.yaml,nginx.conf"
+          target: /srv/whoknows
+
       # The database lives in /srv/whoknows/data on the VM (bind mount) and the secrets in
-      # /srv/whoknows/.env, so replacing the container keeps all data and sessions.
-      - name: Start the new container on the VM
+      # /srv/whoknows/.env, so recreating the containers keeps all data and sessions.
+      - name: Start the stack on the VM
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.AZURE_VM_HOST }}
@@ -82,21 +93,26 @@ jobs:
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           script: |
             set -e
+            cd /srv/whoknows
             # Run the exact image promoted in this workflow, not whatever "latest" points to
-            docker pull ${{ env.IMAGE }}:${{ github.sha }}
-            docker stop whoknows || true
-            docker rm whoknows || true
-            docker run -d --name whoknows --restart unless-stopped \
-              -p 8080:8080 \
-              --env-file /srv/whoknows/.env \
-              -v /srv/whoknows/data:/data:Z \
-              ${{ env.IMAGE }}:${{ github.sha }}
+            export APP_IMAGE=${{ env.IMAGE }}:${{ github.sha }}
+            export ENV_FILE=/srv/whoknows/.env
+            export DATA_MOUNT=/srv/whoknows/data
+            docker compose pull app
+            # Remove the old standalone container (from before compose) so it frees port 8080
+            docker rm -f whoknows || true
+            docker compose up -d --no-build --remove-orphans
+            # compose does not recreate nginx when only the mounted nginx.conf changed, so make
+            # it re-read the file. nginx -t first: a bad config fails the deploy and keeps the
+            # old config running instead of breaking the site.
+            docker compose exec -T nginx nginx -t
+            docker compose exec -T nginx nginx -s reload
             # Remove old images no container uses, so the VM disk does not fill up
             docker image prune -f
 
-      # docker run succeeds as soon as the container starts, even if the app exits a second
-      # later (e.g. missing SESSION_HASH_KEY). Wait for it to answer, so a broken deploy fails here
-      # and the release job below never runs.
+      # compose up succeeds as soon as the containers start, even if the app exits a second
+      # later (e.g. missing SESSION_HASH_KEY). Wait for it to answer through nginx (port 80), so a
+      # broken deploy fails here and the release job below never runs.
       - name: Check that the application responds
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -104,11 +120,12 @@ jobs:
           username: ${{ secrets.AZURE_VM_USER }}
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           script: |
+            cd /srv/whoknows
             for i in $(seq 1 10); do
-              curl -fsS -o /dev/null http://localhost:8080/ && exit 0
+              curl -fsS -o /dev/null http://localhost/ && exit 0
               sleep 2
             done
-            docker logs --tail 30 whoknows
+            docker compose logs --tail 30
             exit 1
 
   # Tags and publishes a GitHub Release for every release PR merged into main.
