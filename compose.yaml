@@ -4,17 +4,17 @@ services:
     # ghcr.io image, ENV_FILE to the secrets file and DATA_MOUNT to the bind-mounted data dir.
     build: .
     image: ${APP_IMAGE:-whoknows}
+    restart: unless-stopped
     ports:
       - "8080:8080"
     env_file:
       - ${ENV_FILE:-backend/.env}
     volumes:
       - "${DATA_MOUNT:-whoknows-data}:/data:Z"
-    expose:
-      - "8080"
 
   nginx:
     image: nginx:1.25-alpine
+    restart: unless-stopped
     ports:
       - "80:80"
     volumes:
