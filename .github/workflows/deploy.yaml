@@ -98,6 +98,11 @@ jobs:
             export APP_IMAGE=${{ env.IMAGE }}:${{ github.sha }}
             export ENV_FILE=/srv/whoknows/.env
             export DATA_MOUNT=/srv/whoknows/data
+            # The container runs as uid/gid 10001 (see Dockerfile), so the bind-mounted data dir
+            # must be owned by it or SQLite cannot open/create the database. -R also fixes a
+            # database file created earlier by the root container.
+            sudo mkdir -p "$DATA_MOUNT"
+            sudo chown -R 10001:10001 "$DATA_MOUNT"
             docker compose pull app
             # Validate nginx.conf in a throwaway container BEFORE compose touches anything. If
             # this deploy recreates nginx (e.g. a new image tag), an invalid config would leave
@@ -127,6 +132,9 @@ jobs:
           key: ${{ secrets.AZURE_VM_SSH_KEY }}
           script: |
             cd /srv/whoknows
+            # New SSH session: without this, compose falls back to backend/.env, which does not
+            # exist on the VM, and the logs below may not print.
+            export ENV_FILE=/srv/whoknows/.env
             for i in $(seq 1 10); do
               curl -fsS -o /dev/null http://localhost/ && exit 0
               sleep 2
