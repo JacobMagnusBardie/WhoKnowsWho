@@ -75,7 +75,7 @@ jobs:
       # The database lives in /srv/whoknows/data on the VM (bind mount) and the secrets in
       # /srv/whoknows/.env, so replacing the container keeps all data and sessions.
       - name: Start the new container on the VM
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.AZURE_VM_HOST }}
           username: ${{ secrets.AZURE_VM_USER }}
@@ -100,7 +100,7 @@ jobs:
       # later (e.g. missing SESSION_HASH_KEY). Wait for it to answer, so a broken deploy fails here
       # and the release job below never runs.
       - name: Check that the application responds
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.AZURE_VM_HOST }}
           username: ${{ secrets.AZURE_VM_USER }}
