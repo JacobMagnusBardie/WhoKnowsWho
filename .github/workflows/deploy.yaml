@@ -99,13 +99,19 @@ jobs:
             export ENV_FILE=/srv/whoknows/.env
             export DATA_MOUNT=/srv/whoknows/data
             docker compose pull app
+            # Validate nginx.conf in a throwaway container BEFORE compose touches anything. If
+            # this deploy recreates nginx (e.g. a new image tag), an invalid config would leave
+            # the new container restart-looping and port 80 down. --add-host stands in for the
+            # "app" upstream, which nginx -t must resolve but which may not be running yet.
+            nginx_image=$(docker compose config --images | grep nginx)
+            docker run --rm --add-host app:127.0.0.1 \
+              -v /srv/whoknows/nginx.conf:/etc/nginx/conf.d/default.conf:ro,z \
+              "$nginx_image" nginx -t
             # Remove the old standalone container (from before compose) so it frees port 8080
             docker rm -f whoknows || true
             docker compose up -d --no-build --remove-orphans
             # compose does not recreate nginx when only the mounted nginx.conf changed, so make
-            # it re-read the file. nginx -t first: a bad config fails the deploy and keeps the
-            # old config running instead of breaking the site.
-            docker compose exec -T nginx nginx -t
+            # it re-read the file. The config was already validated above, so the reload is safe.
             docker compose exec -T nginx nginx -s reload
             # Remove old images no container uses, so the VM disk does not fill up
             docker image prune -f
