@@ -9,7 +9,7 @@ COPY backend/ ./
 RUN CGO_ENABLED=0 go build -o /whoknows-app .
 
 # Runtime stage: only the binary and the frontend files
-FROM alpine:3.22
+FROM alpine:3.24
 RUN addgroup -S -g 10001 app \
     && adduser -S -u 10001 -G app app \
     && mkdir -p /data && chown app:app /data
