@@ -22,7 +22,7 @@ jobs:
     steps:
       # Depth 2: the merge commit plus its parents, so HEAD^2 (the dev commit) is available
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 2
 
