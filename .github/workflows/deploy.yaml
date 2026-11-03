@@ -22,7 +22,7 @@ jobs:
     steps:
       # Depth 2: the merge commit plus its parents, so HEAD^2 (the dev commit) is available
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 2
 
@@ -51,7 +51,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       # If the release PR was merged right after the last dev merge, docker-publish.yaml may still
       # be building that image. Wait up to 10 minutes; fail if it never appears.
@@ -75,7 +75,7 @@ jobs:
       # The database lives in /srv/whoknows/data on the VM (bind mount) and the secrets in
       # /srv/whoknows/.env, so replacing the container keeps all data and sessions.
       - name: Start the new container on the VM
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.AZURE_VM_HOST }}
           username: ${{ secrets.AZURE_VM_USER }}
@@ -100,7 +100,7 @@ jobs:
       # later (e.g. missing SESSION_HASH_KEY). Wait for it to answer, so a broken deploy fails here
       # and the release job below never runs.
       - name: Check that the application responds
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.AZURE_VM_HOST }}
           username: ${{ secrets.AZURE_VM_USER }}
