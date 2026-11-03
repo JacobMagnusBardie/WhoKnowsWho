@@ -64,12 +64,22 @@ jobs:
           # grow. Running `golangci-lint run` locally still reports everything.
           args: --new-from-merge-base=origin/${{ github.base_ref || 'dev' }}
 
+  hadolint:
+    name: hadolint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      
+      - uses: hadolint/hadolint-action@v3.5.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: warning
+
   e2e:
     name: End-to-end (Playwright)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-
       # Playwright starts the app with `go run .` (see e2e/playwright.config.js)
       - uses: actions/setup-go@v7
         with:
