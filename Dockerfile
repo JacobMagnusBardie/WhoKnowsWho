@@ -1,5 +1,5 @@
 # Build stage: full Go toolchain, discarded afterwards
-FROM golang:1.26-alpine AS build
+FROM golang:1.27-alpine AS build
 WORKDIR /src/backend
 # Copy go.mod/go.sum first so the dependency layer is cached between builds
 # checks changes, if changes -> re-download all dependencies.
