@@ -61,6 +61,9 @@ if (logout) {
     event.preventDefault();
     try {
       await fetch('/api/logout');
+    } catch {
+      // A network failure is ignored on purpose: the finally block still sends the user
+      // home, and catching it here keeps an unhandled rejection out of the console.
     } finally {
       window.location.href = '/';
     }
