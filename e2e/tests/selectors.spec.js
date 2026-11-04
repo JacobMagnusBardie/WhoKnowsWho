@@ -49,8 +49,10 @@ test('search, register, log in and log out through the required selectors', asyn
 
   await test.step('log out', async () => {
     await page.locator('#nav-logout').click();
-    // auth.js calls /api/logout in the background, then redirects to the front page
-    await expect(page).toHaveURL(/\/$/);
+    // auth.js calls /api/logout in the background, then redirects to the front page. The page
+    // is already on "/", so a URL check would pass at once; wait for the logged-out nav instead,
+    // or the goto below can race the logout request and still send the old session cookie.
+    await expect(page.locator('#nav-login')).toBeVisible();
 
     await page.goto('/');
     await expect(page.locator('#nav-login')).toBeVisible();
