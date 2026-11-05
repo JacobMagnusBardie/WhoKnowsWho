@@ -1,0 +1,21 @@
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/backend" # where go.mod lives
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker"
+    directory: "/" # Dockerfile
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker-compose"
+    directory: "/" # compose.yaml
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "github-actions"
+    directory: "/" # .github/workflows
+    schedule:
+      interval: "weekly"
