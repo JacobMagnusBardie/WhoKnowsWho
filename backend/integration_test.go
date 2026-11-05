@@ -8,8 +8,6 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-
-	"github.com/gorilla/securecookie"
 )
 
 // TestAuthFlow walks through what a real user does: register, log in, log out. It sends real
@@ -18,10 +16,7 @@ import (
 func TestAuthFlow(t *testing.T) {
 	newTestDB(t)
 
-	// The handlers sign the session cookie with the global sessionKey, which main() normally sets.
-	previousKey := sessionKey
-	sessionKey = securecookie.New(securecookie.GenerateRandomKey(32), nil)
-	t.Cleanup(func() { sessionKey = previousKey })
+	useTestSessionKey(t)
 
 	srv := httptest.NewServer(newMux())
 	t.Cleanup(srv.Close)
@@ -84,15 +79,35 @@ func TestAuthFlow(t *testing.T) {
 	}
 
 	// The steps share one user and one cookie jar, so they must run in this order.
-	t.Run("register", func(t *testing.T) {
+	t.Run("register logs the new user in", func(t *testing.T) {
 		if status, body := do(http.MethodPost, "/api/register", registerForm); status != http.StatusOK {
 			t.Fatalf("status = %d, want 200: %s", status, body)
+		}
+		if !hasSessionCookie() {
+			t.Fatal("no session cookie after register")
+		}
+		_, page := do(http.MethodGet, "/", nil)
+		if !strings.Contains(page, `id="nav-logout"`) {
+			t.Error("front page has no #nav-logout right after register")
+		}
+	})
+
+	// Log out again, so the login steps below start without a session
+	t.Run("logout after register", func(t *testing.T) {
+		if status, body := do(http.MethodGet, "/api/logout", nil); status != http.StatusOK {
+			t.Fatalf("status = %d, want 200: %s", status, body)
+		}
+		if hasSessionCookie() {
+			t.Fatal("session cookie still present after logout")
 		}
 	})
 
 	t.Run("register the same user again is rejected", func(t *testing.T) {
 		if status, body := do(http.MethodPost, "/api/register", registerForm); status != http.StatusUnprocessableEntity {
 			t.Fatalf("status = %d, want 422: %s", status, body)
+		}
+		if hasSessionCookie() {
+			t.Error("session cookie was set after a rejected register")
 		}
 	})
 

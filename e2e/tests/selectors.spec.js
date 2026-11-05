@@ -2,7 +2,7 @@
 const { test, expect } = require('@playwright/test');
 
 // The simulator's browser users (phase 2) click these selectors, so this test walks through
-// every one of them like a user would: search, register, log in, log out.
+// every one of them like a user would: search, register (which logs in), log out, log in, log out.
 test('search, register, log in and log out through the required selectors', async ({ page }) => {
   // Unique per run, so the test also works against a database that already has users
   const username = `e2e-${Date.now()}`;
@@ -29,8 +29,16 @@ test('search, register, log in and log out through the required selectors', asyn
     await page.locator('#password').fill(password);
     await page.locator('#password2').fill(password);
     await page.locator('input[type="submit"]').click();
-    // auth.js submits the form with fetch and sends the user to the login page
-    await expect(page).toHaveURL(/\/login$/);
+    // Registering logs the user in, and auth.js then sends them to the front page
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.locator('#nav-logout')).toBeVisible();
+    await expect(page.locator('#nav-login')).toHaveCount(0);
+  });
+
+  await test.step('log out after register', async () => {
+    await page.locator('#nav-logout').click();
+    // Already on "/", so wait for the logged-out nav rather than the URL (see the last step)
+    await expect(page.locator('#nav-login')).toBeVisible();
   });
 
   await test.step('log in', async () => {

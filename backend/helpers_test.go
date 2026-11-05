@@ -3,7 +3,18 @@ package main
 import (
 	"database/sql"
 	"testing"
+
+	"github.com/gorilla/securecookie"
 )
+
+// useTestSessionKey gives the handlers a random session signing key for one test. main()
+// normally sets sessionKey; register and login need it to set the session cookie.
+func useTestSessionKey(t *testing.T) {
+	t.Helper()
+	previousKey := sessionKey
+	sessionKey = securecookie.New(securecookie.GenerateRandomKey(32), nil)
+	t.Cleanup(func() { sessionKey = previousKey })
+}
 
 func newTestDB(t *testing.T) *sql.DB {
 	t.Helper()

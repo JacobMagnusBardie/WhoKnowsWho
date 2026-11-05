@@ -25,6 +25,7 @@ func TestAPIRegisterPasswordConfirmation(t *testing.T) {
 		} {
 			t.Run(contentType+"/"+confirmation.name, func(t *testing.T) {
 				conn := newTestDB(t)
+				useTestSessionKey(t)
 
 				fields := map[string]string{
 					"username": "newuser",
@@ -78,7 +79,26 @@ func TestAPIRegisterPasswordConfirmation(t *testing.T) {
 					if count != 0 {
 						t.Errorf("user count = %d, want 0 after rejected registration", count)
 					}
+					if cookies := response.Result().Cookies(); len(cookies) != 0 {
+						t.Errorf("rejected registration set cookies: %v", cookies)
+					}
 					return
+				}
+
+				// A successful registration logs the user in
+				var session *http.Cookie
+				for _, c := range response.Result().Cookies() {
+					if c.Name == "session" {
+						session = c
+					}
+				}
+				if session == nil {
+					t.Fatal("no session cookie after registration")
+				}
+				login := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
+				login.AddCookie(session)
+				if user := currentUser(login); user == nil || user.Username != fields["username"] {
+					t.Errorf("session cookie gives user %#v, want %q", user, fields["username"])
 				}
 
 				var passwordHash string

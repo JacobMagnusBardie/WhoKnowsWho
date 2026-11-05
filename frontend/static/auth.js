@@ -26,12 +26,11 @@ function errorMessage(body, fallback) {
 }
 
 // Login and register forms: post the fields as form data, then redirect on success
-// (login -> home page, register -> login page) or show the error and stay on the form.
+// (both log the user in, so go to the home page) or show the error and stay on the form.
 document.querySelectorAll('form[action="/api/login"], form[action="/api/register"]').forEach((form) => {
   form.addEventListener('submit', async (event) => {
     // Stop the normal form submit, which would navigate to the JSON response.
     event.preventDefault();
-    const isLogin = form.getAttribute('action') === '/api/login';
     try {
       const response = await fetch(form.action, {
         method: 'POST',
@@ -42,7 +41,7 @@ document.querySelectorAll('form[action="/api/login"], form[action="/api/register
       // The body may not be JSON (e.g. an empty 500), so don't let parsing throw.
       const body = await response.json().catch(() => null);
       if (response.ok) {
-        window.location.href = isLogin ? '/' : '/login';
+        window.location.href = '/';
       } else {
         showError(form, errorMessage(body, 'Something went wrong'));
       }
