@@ -2,7 +2,7 @@
 const { test, expect } = require('@playwright/test');
 
 // The simulator's browser users (phase 2) click these selectors, so this test walks through
-// every one of them like a user would: search, register, log in, log out.
+// every one of them like a user would: search, register (which logs in), log out, log in, log out.
 test('search, register, log in and log out through the required selectors', async ({ page }) => {
   // Unique per run, so the test also works against a database that already has users
   const username = `e2e-${Date.now()}`;
@@ -29,8 +29,16 @@ test('search, register, log in and log out through the required selectors', asyn
     await page.locator('#password').fill(password);
     await page.locator('#password2').fill(password);
     await page.locator('input[type="submit"]').click();
-    // The form posts straight to /api/register, so the browser shows its JSON answer
-    await expect(page.locator('body')).toContainText('User registered successfully');
+    // Registering logs the user in, and auth.js then sends them to the front page
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.locator('#nav-logout')).toBeVisible();
+    await expect(page.locator('#nav-login')).toHaveCount(0);
+  });
+
+  await test.step('log out after register', async () => {
+    await page.locator('#nav-logout').click();
+    // Already on "/", so wait for the logged-out nav rather than the URL (see the last step)
+    await expect(page.locator('#nav-login')).toBeVisible();
   });
 
   await test.step('log in', async () => {
@@ -39,7 +47,8 @@ test('search, register, log in and log out through the required selectors', asyn
     await page.locator('input[name="username"]').fill(username);
     await page.locator('input[name="password"]').fill(password);
     await page.locator('#login-button').click();
-    await expect(page.locator('body')).toContainText('Logged in successfully');
+    // auth.js redirects to the front page after a successful login
+    await expect(page).toHaveURL(/\/$/);
 
     await page.goto('/');
     await expect(page.locator('#nav-logout')).toBeVisible();
@@ -48,7 +57,10 @@ test('search, register, log in and log out through the required selectors', asyn
 
   await test.step('log out', async () => {
     await page.locator('#nav-logout').click();
-    await expect(page.locator('body')).toContainText('Logged out successfully');
+    // auth.js calls /api/logout in the background, then redirects to the front page. The page
+    // is already on "/", so a URL check would pass at once; wait for the logged-out nav instead,
+    // or the goto below can race the logout request and still send the old session cookie.
+    await expect(page.locator('#nav-login')).toBeVisible();
 
     await page.goto('/');
     await expect(page.locator('#nav-login')).toBeVisible();

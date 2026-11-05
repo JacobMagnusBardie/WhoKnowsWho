@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gorilla/securecookie"
 	"github.com/joho/godotenv"
@@ -204,6 +205,30 @@ func writeValidationError(w http.ResponseWriter, msg string) {
 	}
 }
 
+// setSessionCookie logs a user in by setting the session cookie. The cookie is signed with
+// sessionKey to prevent tampering and holds the user's id and username, which identify the
+// user in later requests. It is HttpOnly so JavaScript can't read it, SameSite=Lax so it is
+// still sent on top-level navigations, and it expires when the browser session ends (no
+// MaxAge or Expires). (gorilla/sessions would allow more, e.g. Redis or database-backed sessions.)
+func setSessionCookie(w http.ResponseWriter, userID int, username string) error {
+	encoded, err := sessionKey.Encode("session", map[string]interface{}{"user_id": userID, "username": username})
+	if err != nil {
+		return err
+	}
+	http.SetCookie(w, &http.Cookie{ //nolint:gosec // G124: Secure follows COOKIE_SECURE, the VM serves plain HTTP
+		Name:     "session",
+		Value:    encoded,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   cookieSecure,
+		SameSite: http.SameSiteLaxMode,
+	})
+	return nil
+}
+
+// maxUsernameLength keeps usernames well inside the session cookie size limit.
+const maxUsernameLength = 30
+
 // @Summary Register
 // @Accept x-www-form-urlencoded
 // @Produce json
@@ -228,6 +253,9 @@ func apiRegister(w http.ResponseWriter, r *http.Request) {
 	case creds.Username == "":
 		writeValidationError(w, "You have to enter a username")
 		return
+	case utf8.RuneCountInString(creds.Username) > maxUsernameLength:
+		writeValidationError(w, "The username can be at most 30 characters")
+		return
 	case creds.Email == "" || !strings.Contains(creds.Email, "@"):
 		writeValidationError(w, "You have to enter a valid email address")
 		return
@@ -249,12 +277,18 @@ func apiRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = createUser(r.Context(), creds.Username, creds.Email, hashedPassword)
+	userID, err := createUser(r.Context(), creds.Username, creds.Email, hashedPassword)
 	if errors.Is(err, errUserExists) {
 		writeValidationError(w, "The username or email is already taken")
 		return
 	}
 	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Log the new user in straight away, so they don't have to type their password again
+	if err := setSessionCookie(w, userID, creds.Username); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -301,23 +335,10 @@ func apiLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create a session cookie for the logged-in user. The cookie is signed using the sessionKey to prevent tampering. The cookie contains the user's ID, which can be used to identify the user in subsequent requests.
-	// The cookie is set to HttpOnly to prevent access from JavaScript, and SameSite is set to Lax to allow the cookie to be sent with top-level navigations.
-	// The cookie is set to expire when the browser session ends (no MaxAge or Expires is set).
-	// (use gorilla/sessions for more advanced session management, e.g. with Redis or database-backed sessions)
-	encoded, err := sessionKey.Encode("session", map[string]interface{}{"user_id": user.ID, "username": user.Username})
-	if err != nil {
+	if err := setSessionCookie(w, user.ID, user.Username); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	http.SetCookie(w, &http.Cookie{ //nolint:gosec // G124: Secure follows COOKIE_SECURE, the VM serves plain HTTP
-		Name:     "session",
-		Value:    encoded,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   cookieSecure,
-		SameSite: http.SameSiteLaxMode,
-	})
 
 	statusCode := 200
 	message := "Logged in successfully"
