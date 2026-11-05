@@ -16,7 +16,10 @@ services:
       - "${DATA_MOUNT:-whoknows-data}:/data:Z"
 
   nginx:
-    image: nginx:1.25-alpine
+    # Stable branch. The 1.30 tag picks up patch releases on each deploy's pull; Dependabot
+    # proposes newer versions and CI scans the image with Trivy.
+    # 1.25 stopped getting updates in 2024 (its image was last rebuilt 2024-05-07).
+    image: nginx:1.30-alpine
     restart: unless-stopped
     ports:
       - "80:80"

@@ -101,6 +101,23 @@ jobs:
           exit-code: "1"
           format: table
 
+      # The nginx image we run in front of the app, read from compose.yaml so this check
+      # follows Dependabot's bumps
+      - name: Find the nginx image in compose.yaml
+        id: nginx
+        run: echo "image=$(grep -oP '^\s*image:\s*\Knginx:\S+' compose.yaml)" >> "$GITHUB_OUTPUT"
+
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ steps.nginx.outputs.image }}
+          version: v0.76.1
+          # Trivy was installed by the step above
+          skip-setup-trivy: true
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
   e2e:
     name: End-to-end (Playwright)
     runs-on: ubuntu-latest
