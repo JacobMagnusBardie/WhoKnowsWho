@@ -9,6 +9,11 @@ concurrency:
   group: deploy-production
   cancel-in-progress: false
 
+# No token permissions by default; each job below asks only for what it needs. The SSH key in
+# secrets.AZURE_VM_SSH_KEY is the real production credential, which is why the actions that
+# receive it (appleboy/*) are pinned to a commit SHA.
+permissions: {}
+
 env:
   # ghcr.io requires a lowercase image name
   IMAGE: ghcr.io/jacobmagnusbardie/whoknows
@@ -44,15 +49,14 @@ jobs:
           echo "sha=$dev_sha" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       # If the release PR was merged right after the last dev merge, docker-publish.yaml may still
       # be building that image. Wait up to 10 minutes; fail if it never appears.
       - name: Wait for the dev image
@@ -75,7 +79,7 @@ jobs:
       # compose.yaml and nginx.conf are the source of truth for the stack, so copy them on every
       # deploy. Nginx mounts nginx.conf from the same directory.
       - name: Copy compose files to the VM
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@917f8b81dfc1ccd331fef9e2d61bdc6c8be94634 # v0.1.7
         with:
           host: ${{ secrets.AZURE_VM_HOST }}
           username: ${{ secrets.AZURE_VM_USER }}
@@ -86,7 +90,7 @@ jobs:
       # The database lives in /srv/whoknows/data on the VM (bind mount) and the secrets in
       # /srv/whoknows/.env, so replacing the container keeps all data and sessions.
       - name: Start the stack on the VM
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ secrets.AZURE_VM_HOST }}
           username: ${{ secrets.AZURE_VM_USER }}
@@ -125,7 +129,7 @@ jobs:
       # later (e.g. missing SESSION_HASH_KEY). Wait for it to answer through nginx (port 80), so a
       # broken deploy fails here and the release job below never runs.
       - name: Check that the application responds
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
           host: ${{ secrets.AZURE_VM_HOST }}
           username: ${{ secrets.AZURE_VM_USER }}

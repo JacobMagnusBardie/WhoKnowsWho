@@ -55,7 +55,9 @@ jobs:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
 
-      - uses: golangci/golangci-lint-action@v9
+      # Third-party actions are pinned to a commit SHA (a tag can be moved to other code);
+      # Dependabot updates the SHA and the version comment together.
+      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: v2.13.2
           working-directory: backend
@@ -70,10 +72,34 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       
-      - uses: hadolint/hadolint-action@v3.5.0
+      - uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
         with:
           dockerfile: Dockerfile
           failure-threshold: warning
+
+  trivy:
+    name: Trivy image scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Build the same image docker-publish.yaml pushes, but only into the local Docker daemon
+      - name: Build the image
+        run: docker build -t whoknows:ci .
+
+      # Fails on HIGH/CRITICAL vulnerabilities that have a fix available, in the alpine
+      # packages and in the Go modules compiled into the binary. Unfixed ones are skipped,
+      # since there is nothing we can upgrade to yet.
+      # Pinned to the SHA of v0.36.0: tags 0.0.1–0.34.2 were hijacked in March 2026
+      # (CVE-2026-33634); v0.36.0 is an immutable release that pins setup-trivy by SHA.
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: whoknows:ci
+          version: v0.76.1
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
 
   e2e:
     name: End-to-end (Playwright)
