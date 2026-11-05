@@ -6,7 +6,10 @@ services:
     image: ${APP_IMAGE:-whoknows}
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      # Loopback only: the public entry point is nginx on port 80. Docker writes its own
+      # firewall rules, so a plain "8080:8080" would be reachable from the internet even with
+      # a host firewall in place. localhost:8080 still works for local development and e2e.
+      - "127.0.0.1:8080:8080"
     env_file:
       - ${ENV_FILE:-backend/.env}
     volumes:
