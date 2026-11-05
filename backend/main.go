@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/gorilla/securecookie"
 	"github.com/joho/godotenv"
@@ -225,6 +226,9 @@ func setSessionCookie(w http.ResponseWriter, userID int, username string) error 
 	return nil
 }
 
+// maxUsernameLength keeps usernames well inside the session cookie size limit.
+const maxUsernameLength = 30
+
 // @Summary Register
 // @Accept x-www-form-urlencoded
 // @Produce json
@@ -248,6 +252,9 @@ func apiRegister(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case creds.Username == "":
 		writeValidationError(w, "You have to enter a username")
+		return
+	case utf8.RuneCountInString(creds.Username) > maxUsernameLength:
+		writeValidationError(w, "The username can be at most 30 characters")
 		return
 	case creds.Email == "" || !strings.Contains(creds.Email, "@"):
 		writeValidationError(w, "You have to enter a valid email address")

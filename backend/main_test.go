@@ -12,16 +12,21 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func TestAPIRegisterPasswordConfirmation(t *testing.T) {
+func TestAPIRegisterValidation(t *testing.T) {
 	for _, contentType := range []string{"application/x-www-form-urlencoded", "application/json"} {
 		for _, confirmation := range []struct {
 			name       string
+			username   string
 			password2  string
 			wantStatus int
+			wantMsg    string
 		}{
-			{name: "mismatched", password2: "different-password", wantStatus: http.StatusUnprocessableEntity},
+			{name: "mismatched", password2: "different-password", wantStatus: http.StatusUnprocessableEntity, wantMsg: "The two passwords do not match"},
 			{name: "matching", password2: "password123", wantStatus: http.StatusOK},
 			{name: "omitted", wantStatus: http.StatusOK},
+			{name: "username at limit", username: strings.Repeat("a", maxUsernameLength), wantStatus: http.StatusOK},
+			{name: "username over limit", username: strings.Repeat("a", maxUsernameLength+1), wantStatus: http.StatusUnprocessableEntity, wantMsg: "The username can be at most 30 characters"},
+			{name: "username over limit multibyte", username: strings.Repeat("æ", maxUsernameLength+1), wantStatus: http.StatusUnprocessableEntity, wantMsg: "The username can be at most 30 characters"},
 		} {
 			t.Run(contentType+"/"+confirmation.name, func(t *testing.T) {
 				conn := newTestDB(t)
@@ -31,6 +36,9 @@ func TestAPIRegisterPasswordConfirmation(t *testing.T) {
 					"username": "newuser",
 					"email":    "newuser@example.com",
 					"password": "password123",
+				}
+				if confirmation.username != "" {
+					fields["username"] = confirmation.username
 				}
 				if confirmation.password2 != "" {
 					fields["password2"] = confirmation.password2
@@ -67,7 +75,7 @@ func TestAPIRegisterPasswordConfirmation(t *testing.T) {
 						t.Fatalf("decode validation response: %v", err)
 					}
 					wantDetail := []ValidationError{
-						{Loc: []interface{}{"body"}, Msg: "The two passwords do not match", Type: "value_error"},
+						{Loc: []interface{}{"body"}, Msg: confirmation.wantMsg, Type: "value_error"},
 					}
 					if !reflect.DeepEqual(validation.Detail, wantDetail) {
 						t.Errorf("detail = %#v, want %#v", validation.Detail, wantDetail)
