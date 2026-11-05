@@ -20,8 +20,8 @@ function showError(form, message) {
 // Picks the message to show from an API error body. 422 responses use the
 // HTTPValidationError shape ({detail: [{msg}]}), while 401 uses AuthResponse ({message}).
 function errorMessage(body, fallback) {
-  if (body && body.detail && body.detail[0] && body.detail[0].msg) return body.detail[0].msg;
-  if (body && body.message) return body.message;
+  if (body?.detail?.[0]?.msg) return body.detail[0].msg;
+  if (body?.message) return body.message;
   return fallback;
 }
 
@@ -45,8 +45,9 @@ document.querySelectorAll('form[action="/api/login"], form[action="/api/register
       } else {
         showError(form, errorMessage(body, 'Something went wrong'));
       }
-    } catch (err) {
-      // fetch only rejects on network failure, not on HTTP error statuses.
+    } catch {
+      // fetch only rejects on network failure, not on HTTP error statuses, so any error
+      // here means the server was unreachable; the details don't help the user.
       showError(form, 'Could not reach the server');
     }
   });

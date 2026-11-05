@@ -78,74 +78,69 @@ func TestAuthFlow(t *testing.T) {
 		return url.Values{"username": {"alice"}, "password": {password}}
 	}
 
-	// The steps share one user and one cookie jar, so they must run in this order.
-	t.Run("register logs the new user in", func(t *testing.T) {
-		if status, body := do(http.MethodPost, "/api/register", registerForm); status != http.StatusOK {
-			t.Fatalf("status = %d, want 200: %s", status, body)
+	// expectStatus sends one request and fails the step unless it answers with want.
+	expectStatus := func(t *testing.T, method, path string, form url.Values, want int) {
+		t.Helper()
+		if status, body := do(method, path, form); status != want {
+			t.Fatalf("%s %s: status = %d, want %d: %s", method, path, status, want, body)
 		}
+	}
+
+	// expectLoggedIn checks that the jar holds a session cookie and the front page shows #nav-logout.
+	expectLoggedIn := func(t *testing.T) {
+		t.Helper()
 		if !hasSessionCookie() {
-			t.Fatal("no session cookie after register")
+			t.Fatal("no session cookie")
+		}
+		if _, page := do(http.MethodGet, "/", nil); !strings.Contains(page, `id="nav-logout"`) {
+			t.Error("front page has no #nav-logout for a logged-in user")
+		}
+	}
+
+	// expectLoggedOut checks that there is no session cookie and the front page shows #nav-login.
+	expectLoggedOut := func(t *testing.T) {
+		t.Helper()
+		if hasSessionCookie() {
+			t.Error("session cookie present for a logged-out user")
 		}
 		_, page := do(http.MethodGet, "/", nil)
-		if !strings.Contains(page, `id="nav-logout"`) {
-			t.Error("front page has no #nav-logout right after register")
+		if strings.Contains(page, `id="nav-logout"`) {
+			t.Error("front page shows #nav-logout for a logged-out user")
 		}
+		if !strings.Contains(page, `id="nav-login"`) {
+			t.Error("front page has no #nav-login for a logged-out user")
+		}
+	}
+
+	// The steps share one user and one cookie jar, so they must run in this order.
+	t.Run("register logs the new user in", func(t *testing.T) {
+		expectStatus(t, http.MethodPost, "/api/register", registerForm, http.StatusOK)
+		expectLoggedIn(t)
 	})
 
 	// Log out again, so the login steps below start without a session
 	t.Run("logout after register", func(t *testing.T) {
-		if status, body := do(http.MethodGet, "/api/logout", nil); status != http.StatusOK {
-			t.Fatalf("status = %d, want 200: %s", status, body)
-		}
-		if hasSessionCookie() {
-			t.Fatal("session cookie still present after logout")
-		}
+		expectStatus(t, http.MethodGet, "/api/logout", nil, http.StatusOK)
+		expectLoggedOut(t)
 	})
 
 	t.Run("register the same user again is rejected", func(t *testing.T) {
-		if status, body := do(http.MethodPost, "/api/register", registerForm); status != http.StatusUnprocessableEntity {
-			t.Fatalf("status = %d, want 422: %s", status, body)
-		}
-		if hasSessionCookie() {
-			t.Error("session cookie was set after a rejected register")
-		}
+		expectStatus(t, http.MethodPost, "/api/register", registerForm, http.StatusUnprocessableEntity)
+		expectLoggedOut(t)
 	})
 
 	t.Run("login with wrong password", func(t *testing.T) {
-		if status, body := do(http.MethodPost, "/api/login", loginForm("wrong")); status != http.StatusUnauthorized {
-			t.Fatalf("status = %d, want 401: %s", status, body)
-		}
-		if hasSessionCookie() {
-			t.Error("session cookie was set after a failed login")
-		}
+		expectStatus(t, http.MethodPost, "/api/login", loginForm("wrong"), http.StatusUnauthorized)
+		expectLoggedOut(t)
 	})
 
 	t.Run("login", func(t *testing.T) {
-		if status, body := do(http.MethodPost, "/api/login", loginForm("correct-horse")); status != http.StatusOK {
-			t.Fatalf("status = %d, want 200: %s", status, body)
-		}
-		if !hasSessionCookie() {
-			t.Fatal("no session cookie after login")
-		}
-		_, page := do(http.MethodGet, "/", nil)
-		if !strings.Contains(page, `id="nav-logout"`) {
-			t.Error("front page has no #nav-logout for a logged-in user")
-		}
+		expectStatus(t, http.MethodPost, "/api/login", loginForm("correct-horse"), http.StatusOK)
+		expectLoggedIn(t)
 	})
 
 	t.Run("logout", func(t *testing.T) {
-		if status, body := do(http.MethodGet, "/api/logout", nil); status != http.StatusOK {
-			t.Fatalf("status = %d, want 200: %s", status, body)
-		}
-		if hasSessionCookie() {
-			t.Error("session cookie still present after logout")
-		}
-		_, page := do(http.MethodGet, "/", nil)
-		if strings.Contains(page, `id="nav-logout"`) {
-			t.Error("front page still shows #nav-logout after logout")
-		}
-		if !strings.Contains(page, `id="nav-login"`) {
-			t.Error("front page has no #nav-login after logout")
-		}
+		expectStatus(t, http.MethodGet, "/api/logout", nil, http.StatusOK)
+		expectLoggedOut(t)
 	})
 }
