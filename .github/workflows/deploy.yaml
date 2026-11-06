@@ -142,7 +142,7 @@ jobs:
             # New SSH session: without this, compose falls back to backend/.env, which does not
             # exist on the VM, and the logs below may not print.
             export ENV_FILE=/srv/whoknows/.env
-            for i in $(seq 1 30); do
+            for i in $(seq 1 15); do
               curl -fsS -o /dev/null --resolve whoknows.swag.dk:443:127.0.0.1 https://whoknows.swag.dk/ && exit 0
               sleep 2
             done
