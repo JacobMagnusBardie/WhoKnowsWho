@@ -4,6 +4,10 @@ services:
     # ghcr.io image, ENV_FILE to the secrets file and DATA_MOUNT to the bind-mounted data dir.
     build: .
     image: ${APP_IMAGE:-whoknows}
+    # Published directly (not via nginx) so the course simulator can reach the API at
+    # http://<vm-ip>:8080. Docker bypasses ufw, so the Azure NSG decides who can connect.
+    ports:
+      - "8080:8080"
     env_file:
       - ${ENV_FILE:-backend/.env}
     volumes:
