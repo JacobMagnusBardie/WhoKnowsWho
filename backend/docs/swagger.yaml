@@ -89,6 +89,16 @@ paths:
           schema:
             type: string
       summary: Serve Root Page
+  /about:
+    get:
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML
+          schema:
+            type: string
+      summary: Serve About Page
   /api/login:
     post:
       consumes:

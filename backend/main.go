@@ -30,6 +30,7 @@ var pages = map[string]*template.Template{
 	"login":    template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"login.html")),
 	"register": template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"register.html")),
 	"search":   template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"search.html")),
+	"about":    template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"about.html")),
 }
 
 // sessionKey signs/verifies session cookie values. Initialized in main() from SESSION_HASH_KEY.
@@ -117,6 +118,17 @@ func serveRegisterPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", contentTypeHTML)
 	if err := pages["register"].ExecuteTemplate(w, "layout", PageData{Title: "Sign Up", User: currentUser(r)}); err != nil {
 		log.Printf("render register page: %v", err)
+	}
+}
+
+// @Summary Serve About Page
+// @Produce html
+// @Success 200 {string} string "HTML"
+// @Router /about [get]
+func serveAboutPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", contentTypeHTML)
+	if err := pages["about"].ExecuteTemplate(w, "layout", PageData{Title: "About", User: currentUser(r)}); err != nil {
+		log.Printf("render about page: %v", err)
 	}
 }
 
@@ -379,6 +391,7 @@ func newMux() *http.ServeMux {
 	mux.HandleFunc("GET /weather", serveWeatherPage)
 	mux.HandleFunc("GET /register", serveRegisterPage)
 	mux.HandleFunc("GET /login", serveLoginPage)
+	mux.HandleFunc("GET /about", serveAboutPage)
 
 	mux.HandleFunc("GET /api/search", apiSearch)
 	mux.HandleFunc("GET /api/weather", apiWeatherHandler)

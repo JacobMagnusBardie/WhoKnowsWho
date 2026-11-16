@@ -2,10 +2,24 @@
 body {
     font-family: 'Trebuchet MS', sans-serif;
     font-size: 14px;
+    margin: 0;
+}
+
+/* Sticky footer: the page is at least as tall as the window and the body area takes up the
+   spare space, so a short page pushes the footer to the bottom of the window. */
+div.page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+div.page div.navigation {
+    padding: 8px;
 }
 
 div.page div.body {
-    padding: 10px;
+    flex: 1;
+    padding: 10px 18px;
 }
 
 div.page div.footer {
