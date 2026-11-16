@@ -75,7 +75,7 @@ jobs:
       # compose.yaml and nginx.conf are the source of truth for the stack, so copy them on every
       # deploy. Nginx mounts nginx.conf from the same directory.
       - name: Copy compose files to the VM
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.AZURE_VM_HOST }}
           username: ${{ secrets.AZURE_VM_USER }}
