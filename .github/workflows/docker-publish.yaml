@@ -12,7 +12,7 @@ permissions:
 
 env:
   # ghcr.io requires a lowercase image name
-  IMAGE: ghcr.io/jacobmagnusbardie/whoknows
+  IMAGE: ghcr.io/jacobmagnusbardieanoep/whoknows
 
 jobs:
   publish:
