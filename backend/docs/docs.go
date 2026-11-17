@@ -39,6 +39,22 @@ const docTemplate = `{
                 }
             }
         },
+        "/about": {
+            "get": {
+                "produces": [
+                    "text/html"
+                ],
+                "summary": "Serve About Page",
+                "responses": {
+                    "200": {
+                        "description": "HTML",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/change-password": {
             "post": {
                 "description": "Changes the password of the logged-in user and clears the must-change-password flag. The new password must differ from the old one.",
@@ -89,17 +105,6 @@ const docTemplate = `{
                         "description": "Unprocessable Entity",
                         "schema": {
                             "$ref": "#/definitions/HTTPValidationError"
-        "/about": {
-            "get": {
-                "produces": [
-                    "text/html"
-                ],
-                "summary": "Serve About Page",
-                "responses": {
-                    "200": {
-                        "description": "HTML",
-                        "schema": {
-                            "type": "string"
                         }
                     }
                 }

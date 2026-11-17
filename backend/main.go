@@ -32,6 +32,7 @@ var pages = map[string]*template.Template{
 	"change-password": template.Must(template.ParseFiles(layoutHTML, htmlDir+"change-password.html")),
 
 	// The entries below are aligned by gofmt as their own block.
+	"about":    template.Must(template.ParseFiles(layoutHTML, htmlDir+"about.html")),
 	"login":    template.Must(template.ParseFiles(layoutHTML, htmlDir+"login.html")),
 	"register": template.Must(template.ParseFiles(layoutHTML, htmlDir+"register.html")),
 	"search":   template.Must(template.ParseFiles(layoutHTML, htmlDir+"search.html")),
