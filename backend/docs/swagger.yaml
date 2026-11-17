@@ -99,6 +99,44 @@ paths:
           schema:
             type: string
       summary: Serve About Page
+  /api/change-password:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Changes the password of the logged-in user and clears the must-change-password
+        flag. The new password must differ from the old one.
+      parameters:
+      - description: Current password
+        in: formData
+        name: old_password
+        required: true
+        type: string
+      - description: New password
+        in: formData
+        name: new_password
+        required: true
+        type: string
+      - description: Repeat new password
+        in: formData
+        name: new_password2
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/AuthResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/AuthResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/HTTPValidationError'
+      summary: Change password
   /api/login:
     post:
       consumes:
@@ -210,6 +248,19 @@ paths:
           schema:
             $ref: '#/definitions/HTTPValidationError'
       summary: Weather
+  /change-password:
+    get:
+      description: Shows the change-password form to a logged-in user, and redirects
+        to /login otherwise. Users flagged must_change_password are sent here by every
+        other page.
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML
+          schema:
+            type: string
+      summary: Serve Change Password Page
   /login:
     get:
       produces:

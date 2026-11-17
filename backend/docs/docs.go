@@ -55,6 +55,61 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/change-password": {
+            "post": {
+                "description": "Changes the password of the logged-in user and clears the must-change-password flag. The new password must differ from the old one.",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Change password",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Current password",
+                        "name": "old_password",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "New password",
+                        "name": "new_password",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Repeat new password",
+                        "name": "new_password2",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/AuthResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/AuthResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/HTTPValidationError"
+                        }
+                    }
+                }
+            }
+        },
         "/api/login": {
             "post": {
                 "consumes": [
@@ -220,6 +275,23 @@ const docTemplate = `{
                         "description": "Bad Gateway",
                         "schema": {
                             "$ref": "#/definitions/HTTPValidationError"
+                        }
+                    }
+                }
+            }
+        },
+        "/change-password": {
+            "get": {
+                "description": "Shows the change-password form to a logged-in user, and redirects to /login otherwise. Users flagged must_change_password are sent here by every other page.",
+                "produces": [
+                    "text/html"
+                ],
+                "summary": "Serve Change Password Page",
+                "responses": {
+                    "200": {
+                        "description": "HTML",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }

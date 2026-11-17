@@ -32,9 +32,18 @@ type RequestValidationError struct {
 } // @name RequestValidationError
 
 type User struct {
-	ID       int
-	Username string
-	Password string
+	ID                 int
+	Username           string
+	Password           string
+	MustChangePassword bool // set for users who have to choose a new password before using the site
+}
+
+// PasswordChange holds the fields posted to /api/change-password, whether they arrive as JSON
+// or form-encoded. NewPassword2 is optional, like password2 on register.
+type PasswordChange struct {
+	OldPassword  string `json:"old_password"`
+	NewPassword  string `json:"new_password"`
+	NewPassword2 string `json:"new_password2"`
 }
 
 // Credentials holds the fields posted to /api/register and /api/login, whether they
