@@ -115,3 +115,37 @@ func TestAuthFlow(t *testing.T) {
 		expectLoggedOut(t)
 	})
 }
+
+// TestAboutPage checks that the footer's "About" link leads to a real page. Without a route for
+// /about the request fell through to GET / and showed the search page instead.
+func TestAboutPage(t *testing.T) {
+	srv := httptest.NewServer(newMux())
+	t.Cleanup(srv.Close)
+
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, srv.URL+"/about", nil)
+	if err != nil {
+		t.Fatalf("build request: %v", err)
+	}
+	resp, err := srv.Client().Do(req)
+	if err != nil {
+		t.Fatalf("GET /about: %v", err)
+	}
+	content, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read response: %v", err)
+	}
+	if err := resp.Body.Close(); err != nil {
+		t.Errorf("close response: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("GET /about: status = %d, want %d", resp.StatusCode, http.StatusOK)
+	}
+	page := string(content)
+	if !strings.Contains(page, "Our mission") {
+		t.Error("/about does not show the About content")
+	}
+	if strings.Contains(page, `id="search-input"`) {
+		t.Error("/about shows the search page, so the request fell through to GET /")
+	}
+}

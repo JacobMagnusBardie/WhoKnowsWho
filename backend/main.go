@@ -125,6 +125,17 @@ func serveRegisterPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// @Summary Serve About Page
+// @Produce html
+// @Success 200 {string} string "HTML"
+// @Router /about [get]
+func serveAboutPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", contentTypeHTML)
+	if err := pages["about"].ExecuteTemplate(w, "layout", PageData{Title: "About", User: currentUser(r)}); err != nil {
+		log.Printf("render about page: %v", err)
+	}
+}
+
 // @Summary Serve Login Page
 // @Produce html
 // @Success 200 {string} string "HTML"
@@ -563,6 +574,7 @@ func newMux() http.Handler {
 	mux.HandleFunc("GET /weather", serveWeatherPage)
 	mux.HandleFunc("GET /register", serveRegisterPage)
 	mux.HandleFunc("GET /login", serveLoginPage)
+	mux.HandleFunc("GET /about", serveAboutPage)
 
 	mux.HandleFunc("GET /api/search", apiSearch)
 	mux.HandleFunc("GET /api/weather", apiWeatherHandler)

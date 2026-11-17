@@ -89,6 +89,17 @@ const docTemplate = `{
                         "description": "Unprocessable Entity",
                         "schema": {
                             "$ref": "#/definitions/HTTPValidationError"
+        "/about": {
+            "get": {
+                "produces": [
+                    "text/html"
+                ],
+                "summary": "Serve About Page",
+                "responses": {
+                    "200": {
+                        "description": "HTML",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
