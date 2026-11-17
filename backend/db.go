@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
-	"golang.org/x/crypto/bcrypt"
 	"log"
 	"os"
+
+	"golang.org/x/crypto/bcrypt"
 
 	_ "modernc.org/sqlite" // pure-Go SQLite driver.
 )
@@ -47,18 +49,16 @@ CREATE TABLE IF NOT EXISTS pages (
 // NOT EXISTS never changes a table that exists, so every column added to schema later has to be
 // added here too. Each step checks first, so it is safe to run on every startup. This is a
 // stopgap until the project uses a real migration tool.
-func migrateSchema(conn *sql.DB) error {
+func migrateSchema(ctx context.Context, conn *sql.DB) error {
 	var found int
-	err := conn.QueryRow(
-		`SELECT COUNT(*) FROM pragma_table_info('users') WHERE name = 'must_change_password'`,
-	).Scan(&found)
+	err := conn.QueryRowContext(ctx, `SELECT COUNT(*) FROM pragma_table_info('users') WHERE name = 'must_change_password'`).Scan(&found)
 	if err != nil {
 		return err
 	}
 	if found > 0 {
 		return nil
 	}
-	_, err = conn.Exec(`ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0`)
+	_, err = conn.ExecContext(ctx, `ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0`)
 	return err
 }
 
@@ -85,7 +85,7 @@ func initDB() *sql.DB {
 		log.Fatalf("failed to apply schema to %q: %v", path, err)
 	}
 
-	if err := migrateSchema(conn); err != nil {
+	if err := migrateSchema(context.Background(), conn); err != nil {
 		log.Fatalf("failed to migrate schema of %q: %v", path, err)
 	}
 

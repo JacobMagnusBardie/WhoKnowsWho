@@ -40,7 +40,7 @@ func TestMigrateSchemaAddsMustChangePassword(t *testing.T) {
 	}
 
 	for range 2 { // the second run must be a no-op
-		if err := migrateSchema(conn); err != nil {
+		if err := migrateSchema(t.Context(), conn); err != nil {
 			t.Fatalf("migrateSchema: %v", err)
 		}
 	}
