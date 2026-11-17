@@ -23,17 +23,18 @@ import (
 
 // Parses all html pages through Go's template engine. The templates are stored in the "templates" variable and can be used to render HTML pages with dynamic data.
 const htmlDir = "../frontend/html/"
+const layoutHTML = htmlDir + "layout.html"
 const contentTypeHTML = "text/html; charset=utf-8"
 
 // Each page pairs the shared layout with its own body file, so layout.html template knows what .html to render with a layout. (See L. 25 layout.html)
 var pages = map[string]*template.Template{
 	// Shown to users who must change their password, e.g. after a data breach.
-	"change-password": template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"change-password.html")),
+	"change-password": template.Must(template.ParseFiles(layoutHTML, htmlDir+"change-password.html")),
 
 	// The entries below are aligned by gofmt as their own block.
-	"login":    template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"login.html")),
-	"register": template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"register.html")),
-	"search":   template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"search.html")),
+	"login":    template.Must(template.ParseFiles(layoutHTML, htmlDir+"login.html")),
+	"register": template.Must(template.ParseFiles(layoutHTML, htmlDir+"register.html")),
+	"search":   template.Must(template.ParseFiles(layoutHTML, htmlDir+"search.html")),
 }
 
 // sessionKey signs/verifies session cookie values. Initialized in main() from SESSION_HASH_KEY.
@@ -232,6 +233,7 @@ func setSessionCookie(w http.ResponseWriter, userID int, username string) error 
 
 // maxUsernameLength keeps usernames well inside the session cookie size limit.
 const maxUsernameLength = 30
+const invalidBodyMessage = "Invalid request body"
 
 // @Summary Register
 // @Accept x-www-form-urlencoded
@@ -247,7 +249,7 @@ func apiRegister(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	creds, err := readCredentials(w, r)
 	if err != nil {
-		writeValidationError(w, "Invalid request body")
+		writeValidationError(w, invalidBodyMessage)
 		return
 	}
 
@@ -314,7 +316,7 @@ func apiLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	creds, err := readCredentials(w, r)
 	if err != nil {
-		writeValidationError(w, "Invalid request body")
+		writeValidationError(w, invalidBodyMessage)
 		return
 	}
 
@@ -452,7 +454,7 @@ func apiChangePassword(w http.ResponseWriter, r *http.Request) {
 
 	change, err := readPasswordChange(w, r)
 	if err != nil {
-		writeValidationError(w, "Invalid request body")
+		writeValidationError(w, invalidBodyMessage)
 		return
 	}
 
