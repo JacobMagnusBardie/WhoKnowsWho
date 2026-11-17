@@ -25,9 +25,9 @@ function errorMessage(body, fallback) {
   return fallback;
 }
 
-// Login and register forms: post the fields as form data, then redirect on success
+// Login, register and change password forms: post the fields as form data, then redirect on success
 // (both log the user in, so go to the home page) or show the error and stay on the form.
-document.querySelectorAll('form[action="/api/login"], form[action="/api/register"]').forEach((form) => {
+document.querySelectorAll('form[action="/api/login"], form[action="/api/register"], form[action="/api/change-password"]').forEach((form) => {
   form.addEventListener('submit', async (event) => {
     // Stop the normal form submit, which would navigate to the JSON response.
     event.preventDefault();

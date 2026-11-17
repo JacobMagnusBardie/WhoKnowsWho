@@ -29,7 +29,9 @@ CREATE TABLE IF NOT EXISTS users (
 	id       INTEGER PRIMARY KEY AUTOINCREMENT,
 	username TEXT NOT NULL UNIQUE,
 	email    TEXT NOT NULL UNIQUE,
-	password TEXT NOT NULL
+	password TEXT NOT NULL,
+	-- 1 when the user must choose a new password before using the site (e.g. after a data breach)
+	must_change_password INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS pages (
@@ -40,6 +42,25 @@ CREATE TABLE IF NOT EXISTS pages (
 	language TEXT NOT NULL DEFAULT 'en'
 );
 `
+
+// migrateSchema brings a database that already exists up to date with schema. CREATE TABLE IF
+// NOT EXISTS never changes a table that exists, so every column added to schema later has to be
+// added here too. Each step checks first, so it is safe to run on every startup. This is a
+// stopgap until the project uses a real migration tool.
+func migrateSchema(conn *sql.DB) error {
+	var found int
+	err := conn.QueryRow(
+		`SELECT COUNT(*) FROM pragma_table_info('users') WHERE name = 'must_change_password'`,
+	).Scan(&found)
+	if err != nil {
+		return err
+	}
+	if found > 0 {
+		return nil
+	}
+	_, err = conn.Exec(`ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0`)
+	return err
+}
 
 // initDB opens (creating if necessary) the SQLite database file at dbPath and
 // ensures the expected tables exist. It is called once from main() before the
@@ -62,6 +83,10 @@ func initDB() *sql.DB {
 
 	if _, err := conn.Exec(schema); err != nil {
 		log.Fatalf("failed to apply schema to %q: %v", path, err)
+	}
+
+	if err := migrateSchema(conn); err != nil {
+		log.Fatalf("failed to migrate schema of %q: %v", path, err)
 	}
 
 	seedDevData(conn)

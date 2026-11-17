@@ -27,6 +27,10 @@ const contentTypeHTML = "text/html; charset=utf-8"
 
 // Each page pairs the shared layout with its own body file, so layout.html template knows what .html to render with a layout. (See L. 25 layout.html)
 var pages = map[string]*template.Template{
+	// Shown to users who must change their password, e.g. after a data breach.
+	"change-password": template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"change-password.html")),
+
+	// The entries below are aligned by gofmt as their own block.
 	"login":    template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"login.html")),
 	"register": template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"register.html")),
 	"search":   template.Must(template.ParseFiles(htmlDir+"layout.html", htmlDir+"search.html")),
@@ -369,7 +373,185 @@ func apiLogout(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func newMux() *http.ServeMux {
+// writeAuthResponse sends an AuthResponse JSON body with the given status code and message.
+// The caller sets the Content-Type header first.
+func writeAuthResponse(w http.ResponseWriter, status int, message string) {
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(AuthResponse{StatusCode: &status, Message: &message}); err != nil {
+		log.Printf("writing auth response: %v", err)
+	}
+}
+
+// readPasswordChange reads the change-password fields from either a JSON body or a
+// form-encoded body, like readCredentials does for login and register.
+func readPasswordChange(w http.ResponseWriter, r *http.Request) (PasswordChange, error) {
+	var c PasswordChange
+	if mt, _, err := mime.ParseMediaType(r.Header.Get("Content-Type")); err == nil && mt == "application/json" {
+		err := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxJSONBody)).Decode(&c)
+		return c, err
+	}
+
+	if err := r.ParseForm(); err != nil {
+		return c, err
+	}
+	c.OldPassword = r.FormValue("old_password")
+	c.NewPassword = r.FormValue("new_password")
+	c.NewPassword2 = r.FormValue("new_password2")
+	return c, nil
+}
+
+// @Summary Serve Change Password Page
+// @Description Shows the change-password form to a logged-in user, and redirects to /login otherwise. Users flagged must_change_password are sent here by every other page.
+// @Produce html
+// @Success 200 {string} string "HTML"
+// @Router /change-password [get]
+func serveChangePasswordPage(w http.ResponseWriter, r *http.Request) {
+	sessionUser := currentUser(r)
+	if sessionUser == nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	user, err := getUserByUsername(sessionUser.Username)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if user == nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	data := PageData{Title: "Change Password", User: user}
+	if user.MustChangePassword {
+		data.Flashes = []string{"Your login details may have been exposed in a data breach. You must choose a new password before you can use the site."}
+	}
+	w.Header().Set("Content-Type", contentTypeHTML)
+	if err := pages["change-password"].ExecuteTemplate(w, "layout", data); err != nil {
+		log.Printf("render change password page: %v", err)
+	}
+}
+
+// @Summary Change password
+// @Description Changes the password of the logged-in user and clears the must-change-password flag. The new password must differ from the old one.
+// @Accept x-www-form-urlencoded
+// @Produce json
+// @Param old_password formData string true "Current password"
+// @Param new_password formData string true "New password"
+// @Param new_password2 formData string true "Repeat new password"
+// @Success 200 {object} AuthResponse
+// @Failure 401 {object} AuthResponse
+// @Failure 422 {object} HTTPValidationError
+// @Router /api/change-password [post]
+func apiChangePassword(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	sessionUser := currentUser(r)
+	if sessionUser == nil {
+		writeAuthResponse(w, http.StatusUnauthorized, "You must be logged in to change your password")
+		return
+	}
+
+	change, err := readPasswordChange(w, r)
+	if err != nil {
+		writeValidationError(w, "Invalid request body")
+		return
+	}
+
+	// Read the user from the database rather than trusting the cookie, which only holds the
+	// username. user is nil if the account was deleted after the cookie was issued.
+	user, err := getUserByUsername(sessionUser.Username)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if user == nil {
+		writeAuthResponse(w, http.StatusUnauthorized, "You must be logged in to change your password")
+		return
+	}
+
+	switch {
+	case change.OldPassword == "" || change.NewPassword == "" || change.NewPassword2 == "":
+		writeValidationError(w, "Missing required field")
+		return
+	case change.NewPassword != change.NewPassword2:
+		writeValidationError(w, "The two new passwords do not match")
+		return
+	case change.NewPassword == change.OldPassword:
+		// The old password may be the one that leaked, so it must not be reused.
+		writeValidationError(w, "The new password must be different from the old one")
+		return
+	}
+
+	if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(change.OldPassword)) != nil {
+		writeValidationError(w, "The old password is incorrect")
+		return
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(change.NewPassword), bcrypt.DefaultCost)
+	if errors.Is(err, bcrypt.ErrPasswordTooLong) {
+		writeValidationError(w, "The password can be at most 72 bytes")
+		return
+	}
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if err := updatePassword(r.Context(), user.ID, hashedPassword); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	writeAuthResponse(w, http.StatusOK, "Password changed successfully")
+}
+
+// passwordChangeAllowed lists the paths a user who must change their password can still reach:
+// the change-password page and API, logging in and out, and the static files the page needs.
+func passwordChangeAllowed(path string) bool {
+	switch path {
+	case "/change-password", "/api/change-password", "/api/login", "/api/logout":
+		return true
+	}
+	return strings.HasPrefix(path, "/static/")
+}
+
+// requirePasswordChange wraps the router. A logged-in user flagged must_change_password (for
+// example because their credentials leaked) can reach nothing but the change-password page until
+// they have chosen a new password: pages redirect there, and API calls get 403. The flag is read
+// from the database on every request instead of from the session cookie, so it also stops a
+// session that was already open when the account was flagged.
+func requirePasswordChange(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if passwordChangeAllowed(r.URL.Path) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		sessionUser := currentUser(r)
+		if sessionUser == nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		user, err := getUserByUsername(sessionUser.Username)
+		if err != nil {
+			log.Printf("check must_change_password for %q: %v", sessionUser.Username, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if user == nil || !user.MustChangePassword {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			w.Header().Set("Content-Type", "application/json")
+			writeAuthResponse(w, http.StatusForbidden, "You must change your password before you can use the site")
+			return
+		}
+		http.Redirect(w, r, "/change-password", http.StatusSeeOther)
+	})
+}
+
+func newMux() http.Handler {
 	mux := http.NewServeMux()
 
 	// Serve /static/* (CSS, images, osv) from ../frontend/static
@@ -385,11 +567,13 @@ func newMux() *http.ServeMux {
 	mux.HandleFunc("POST /api/register", apiRegister)
 	mux.HandleFunc("POST /api/login", apiLogin)
 	mux.HandleFunc("GET /api/logout", apiLogout)
+	mux.HandleFunc("GET /change-password", serveChangePasswordPage)
+	mux.HandleFunc("POST /api/change-password", apiChangePassword)
 
 	// Swagger UI endpoint
 	mux.Handle("GET /swagger/", httpSwagger.WrapHandler)
 
-	return mux
+	return requirePasswordChange(mux)
 }
 
 // @title WhoKnows API

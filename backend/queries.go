@@ -19,9 +19,9 @@ var errUserExists = errors.New("username or email already taken")
 func getUserByUsername(username string) (*User, error) {
 	var u User
 	err := db.QueryRow(
-		`SELECT id, username, password FROM users WHERE username = ?`,
+		`SELECT id, username, password, must_change_password FROM users WHERE username = ?`,
 		username,
-	).Scan(&u.ID, &u.Username, &u.Password)
+	).Scan(&u.ID, &u.Username, &u.Password, &u.MustChangePassword)
 
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -55,6 +55,18 @@ func createUser(ctx context.Context, username, email string, hashedPassword []by
 		return 0, err
 	}
 	return int(id), nil
+}
+
+// updatePassword stores a new, already hashed password for a user and clears the
+// must_change_password flag in the same statement, so a user can't end up with the new password
+// and still be flagged, or unflagged with the old one.
+func updatePassword(ctx context.Context, userID int, hashedPassword []byte) error {
+	_, err := db.ExecContext(
+		ctx,
+		`UPDATE users SET password = ?, must_change_password = 0 WHERE id = ?`,
+		hashedPassword, userID,
+	)
+	return err
 }
 
 const (
