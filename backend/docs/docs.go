@@ -39,6 +39,22 @@ const docTemplate = `{
                 }
             }
         },
+        "/about": {
+            "get": {
+                "produces": [
+                    "text/html"
+                ],
+                "summary": "Serve About Page",
+                "responses": {
+                    "200": {
+                        "description": "HTML",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/login": {
             "post": {
                 "consumes": [
