@@ -83,6 +83,32 @@ jobs:
           source: "compose.yaml,nginx.conf"
           target: /srv/whoknows
 
+      # GitHub secrets are the source of truth for the app's .env, so rewrite it on every deploy
+      # instead of editing it by hand on the VM. The checks run before anything is written, so a
+      # missing or invalid secret fails the deploy here, before compose touches the running stack.
+      - name: Write .env on the VM
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          SESSION_HASH_KEY: ${{ secrets.SESSION_HASH_KEY }}
+        with:
+          host: ${{ secrets.AZURE_VM_HOST }}
+          username: ${{ secrets.AZURE_VM_USER }}
+          key: ${{ secrets.AZURE_VM_SSH_KEY }}
+          envs: SESSION_HASH_KEY
+          script: |
+            set -e
+            # New files are readable by the owner only
+            umask 077
+            cd /srv/whoknows
+
+            # Fail if the secret is missing or not valid base64 (the app decodes it at startup)
+            test -n "$SESSION_HASH_KEY"
+            printf '%s' "$SESSION_HASH_KEY" | base64 -d > /dev/null
+
+            # Write to a temp file and swap it in, so .env is never half-written
+            printf 'SESSION_HASH_KEY=%s\nCOOKIE_SECURE=true\n' "$SESSION_HASH_KEY" > .env.new
+            mv .env.new .env
+
       # The database lives in /srv/whoknows/data on the VM (bind mount) and the secrets in
       # /srv/whoknows/.env, so replacing the container keeps all data and sessions.
       - name: Start the stack on the VM
