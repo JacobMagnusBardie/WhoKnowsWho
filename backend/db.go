@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"database/sql"
+	_ "embed" // for the //go:embed seed file
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
-
-	"golang.org/x/crypto/bcrypt"
 
 	_ "modernc.org/sqlite" // pure-Go SQLite driver.
 )
@@ -89,34 +89,52 @@ func initDB() *sql.DB {
 		log.Fatalf("failed to migrate schema of %q: %v", path, err)
 	}
 
-	seedDevData(conn)
+	if err := seedPages(context.Background(), conn); err != nil {
+		log.Fatalf("failed to seed pages into %q: %v", path, err)
+	}
 
 	fmt.Printf("Database ready at %s\n", path)
 	return conn
 }
 
-// seedDevData inserts a fixed test user and test page for local development,
-// so there is something to log in with and search for right after a fresh
-// startup. It uses INSERT OR IGNORE against the UNIQUE columns, so it is safe
-// to call on every startup — it's a no-op once the rows already exist.
-func seedDevData(conn *sql.DB) {
-	// Hash the password before inserting it into the database
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
-	if err != nil {
-		log.Fatalf("failed to hash password: %v", err)
+// seedPagesJSON holds the legacy app's 51 searchable pages (archived Wikipedia articles),
+// exported from its old database. go:embed packs the file into the binary at build time,
+// so every environment (local, CI, the VM) gets the same pages without copying any files.
+//
+//go:embed seed/pages.json
+var seedPagesJSON []byte
+
+// seedPage is one row of seed/pages.json.
+type seedPage struct {
+	Title    string `json:"title"`
+	URL      string `json:"url"`
+	Language string `json:"language"`
+	Content  string `json:"content"`
+}
+
+// seedPages inserts the legacy pages. INSERT OR IGNORE skips pages whose title or url
+// already exists, so it is safe to run on every startup.
+func seedPages(ctx context.Context, conn *sql.DB) error {
+	var pages []seedPage
+	if err := json.Unmarshal(seedPagesJSON, &pages); err != nil {
+		return fmt.Errorf("parse seed pages: %w", err)
 	}
-	_, err = conn.Exec(
-		`INSERT OR IGNORE INTO users (username, email, password) VALUES (?, ?, ?)`,
-		"testuser", "testuser@example.com", hashedPassword,
-	)
+
+	// One transaction, so the pages are written together instead of one disk write each
+	tx, err := conn.BeginTx(ctx, nil)
 	if err != nil {
-		log.Fatalf("failed to seed test user: %v", err)
+		return err
 	}
-	_, err = conn.Exec(
-		`INSERT OR IGNORE INTO pages (title, url, content, language) VALUES (?, ?, ?, ?)`,
-		"Test Page", "https://example.com/test-page", "This is some test content for development search.", "en",
-	)
-	if err != nil {
-		log.Fatalf("failed to seed test page: %v", err)
+	defer tx.Rollback() //nolint:errcheck // no-op after Commit
+
+	for _, p := range pages {
+		_, err := tx.ExecContext(ctx,
+			`INSERT OR IGNORE INTO pages (title, url, content, language) VALUES (?, ?, ?, ?)`,
+			p.Title, p.URL, p.Content, p.Language,
+		)
+		if err != nil {
+			return fmt.Errorf("insert seed page %q: %w", p.Title, err)
+		}
 	}
+	return tx.Commit()
 }

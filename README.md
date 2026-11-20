@@ -28,7 +28,7 @@ go run .
 
 Server starts on `http://localhost:8080`. The SQLite database (`backend/whoknows.db`) is created automatically on first run.
 
-Test login: `testuser` / `password123`
+On startup the app loads the 51 searchable pages from `backend/seed/pages.json` (try searching for `python`). There are no ready-made users: register an account on your local site to log in.
 
 ### With Docker
 
