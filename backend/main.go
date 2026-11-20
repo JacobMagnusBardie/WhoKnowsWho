@@ -108,6 +108,7 @@ func serveRootPage(w http.ResponseWriter, r *http.Request) {
 			log.Printf("search query failed: %v", err)
 			// Fall through with empty results rather than failing the whole page load.
 		}
+		countSearch(results)
 	}
 
 	if err := pages["search"].ExecuteTemplate(w, "layout", PageData{Title: "¿Who Knows?", Query: query, Results: results, User: currentUser(r)}); err != nil {
@@ -184,6 +185,7 @@ func apiSearch(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	countSearch(results)
 	json.NewEncoder(w).Encode(SearchResponse{Data: results})
 }
 
@@ -304,6 +306,7 @@ func apiRegister(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	registrationsTotal.Inc()
 
 	// Log the new user in straight away, so they don't have to type their password again
 	if err := setSessionCookie(w, userID, creds.Username); err != nil {
@@ -346,6 +349,7 @@ func apiLogin(w http.ResponseWriter, r *http.Request) {
 	// user is nil when the username doesn't exist. Answer exactly like a wrong password,
 	// so the response doesn't reveal which usernames are registered.
 	if user == nil || bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(creds.Password)) != nil {
+		loginsTotal.WithLabelValues("failed").Inc()
 		w.WriteHeader(http.StatusUnauthorized)
 		statusCode := 401
 		message := "Invalid username or password"
@@ -358,6 +362,7 @@ func apiLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	loginsTotal.WithLabelValues("ok").Inc()
 	statusCode := 200
 	message := "Logged in successfully"
 	json.NewEncoder(w).Encode(AuthResponse{StatusCode: &statusCode, Message: &message})
@@ -588,7 +593,28 @@ func newMux() http.Handler {
 	// Swagger UI endpoint
 	mux.Handle("GET /swagger/", httpSwagger.WrapHandler)
 
-	return requirePasswordChange(mux)
+	mux.HandleFunc("GET /health", serveHealth)
+
+	return instrument(requirePasswordChange(mux))
+}
+
+// @Summary Health check
+// @Description Returns 200 when the app is running and the database answers, 503 otherwise.
+// @Produce json
+// @Success 200 {object} map[string]string
+// @Failure 503 {object} map[string]string
+// @Router /health [get]
+func serveHealth(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	status, body := http.StatusOK, map[string]string{"status": "ok"}
+	if err := db.PingContext(r.Context()); err != nil {
+		log.Printf("health check: database ping failed: %v", err)
+		status, body = http.StatusServiceUnavailable, map[string]string{"status": "database unavailable"}
+	}
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(body); err != nil {
+		log.Printf("writing health response: %v", err)
+	}
 }
 
 // @title WhoKnows API
@@ -614,6 +640,15 @@ func main() {
 	}()
 
 	mux := newMux()
+
+	// /metrics runs on its own internal port, next to the site (see metricsAddr)
+	metricsServer := newMetricsServer()
+	go func() {
+		fmt.Printf("Metrics on %s/metrics\n", metricsServer.Addr)
+		if err := metricsServer.ListenAndServe(); err != nil {
+			log.Printf("metrics server stopped: %v", err)
+		}
+	}()
 
 	fmt.Println("Server running on :8080")
 	http.ListenAndServe(":8080", mux)
