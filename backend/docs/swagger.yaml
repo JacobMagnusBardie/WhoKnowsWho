@@ -261,6 +261,26 @@ paths:
           schema:
             type: string
       summary: Serve Change Password Page
+  /health:
+    get:
+      description: Returns 200 when the app is running and the database answers, 503
+        otherwise.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
   /login:
     get:
       produces:
