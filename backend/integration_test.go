@@ -151,3 +151,27 @@ func TestAboutPage(t *testing.T) {
 		t.Error("/about shows the search page, so the request fell through to GET /")
 	}
 }
+
+// TestSeedPagesSearchable checks that the legacy pages are loaded, that loading them twice adds
+// nothing (the app does it on every startup), and that the search page finds one of them.
+func TestSeedPagesSearchable(t *testing.T) {
+	conn := newTestDB(t)
+	for range 2 {
+		if err := seedPages(t.Context(), conn); err != nil {
+			t.Fatalf("seed pages: %v", err)
+		}
+	}
+
+	var count int
+	if err := conn.QueryRowContext(t.Context(), `SELECT COUNT(*) FROM pages`).Scan(&count); err != nil {
+		t.Fatalf("count pages: %v", err)
+	}
+	if count != 51 {
+		t.Errorf("pages after seeding twice = %d, want 51", count)
+	}
+
+	page := newTestSite(t).page(t, "/?q=javascript")
+	if !strings.Contains(page, `class="search-result-title"`) || !strings.Contains(page, ">JavaScript</a>") {
+		t.Error(`searching "javascript" does not show the JavaScript page`)
+	}
+}
